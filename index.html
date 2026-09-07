@@ -41,8 +41,9 @@
     .brand-mark{width:27px;height:27px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#ff9b61 46%,var(--accent-2));display:grid;place-items:center;box-shadow:0 8px 22px rgba(255,79,134,.35);font-size:14px}
     .stats{display:flex;gap:8px}
     .stat{display:flex;align-items:center;gap:5px;background:rgba(12,12,18,.62);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(12px);padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}
-    .tabs{margin-top:12px;display:flex;justify-content:center;gap:4px;pointer-events:auto}
-    .tab{border:0;color:#d7d7e4;background:transparent;padding:8px 10px;font-size:13px;font-weight:800;opacity:.68;cursor:pointer;border-radius:999px}
+    .tabs{margin-top:12px;display:flex;justify-content:flex-start;gap:4px;pointer-events:auto;overflow-x:auto;scrollbar-width:none;padding:0 12px 2px;overscroll-behavior-x:contain}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{border:0;color:#d7d7e4;background:transparent;padding:8px 10px;font-size:12px;font-weight:800;opacity:.68;cursor:pointer;border-radius:999px;white-space:nowrap;flex:0 0 auto}
     .tab.active{background:rgba(255,255,255,.11);opacity:1;color:#fff}
 
     .feed{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior-y:contain}
@@ -295,9 +296,14 @@
           <div class="stat" title="Spendable XP">⚡ <span id="xpCount">120</span></div>
         </div>
       </div>
-      <div class="tabs" role="tablist">
+      <div class="tabs" role="tablist" aria-label="Learning level">
         <button class="tab active" data-filter="all">For You</button>
         <button class="tab" data-filter="beginner">Beginner</button>
+        <button class="tab" data-filter="conversational">Conversational</button>
+        <button class="tab" data-filter="intermediate">Intermediate</button>
+        <button class="tab" data-filter="upper">Upper</button>
+        <button class="tab" data-filter="advanced">Advanced</button>
+        <button class="tab" data-filter="master">Master</button>
         <button class="tab" data-filter="search">Search</button>
       </div>
     </header>
@@ -388,28 +394,28 @@ const lessons = [
     quiz:{q:'What does “desu ka” usually tell you?', a:'It is a polite question', choices:['It is a polite question','It means thank you','It means goodbye']}
   },
   {
-    id:'kudasai', level:'travel', tag:'Café · Travel', scene:'cafe', float:'kudasai',
+    id:'kudasai', level:'beginner', tag:'Café · Travel', scene:'cafe', float:'kudasai',
     phrase:'Koohii o hitotsu kudasai.', speech:'コーヒーを一つください。', en:'One coffee, please.',
     explain:'Kudasai means “please give me”. Hitotsu is a useful way to say “one thing” when ordering.',
     words:[['koohii','coffee'],['o','marks the thing you want'],['hitotsu','one thing'],['kudasai','please give me']],
     quiz:{q:'How do you politely ask for one coffee?', a:'Koohii o hitotsu kudasai.', choices:['Koohii o hitotsu kudasai.','Koohii wa doko?','Koohii janai.']}
   },
   {
-    id:'ikura', level:'travel', tag:'Shopping · Travel', scene:'market', float:'ikura?',
+    id:'ikura', level:'beginner', tag:'Shopping · Travel', scene:'market', float:'ikura?',
     phrase:'Kore wa ikura desu ka?', speech:'これはいくらですか？', en:'How much is this?',
     explain:'This is a brilliant pattern to learn whole. Kore = this, ikura = how much, and desu ka makes it a polite question.',
     words:[['kore','this'],['wa','topic marker — “as for…”'],['ikura','how much'],['desu ka','polite question ending']],
     quiz:{q:'Which part means “how much”?', a:'ikura', choices:['kore','ikura','doko']}
   },
   {
-    id:'uma', level:'all', tag:'Food · Casual', scene:'ramen', float:'umai!',
+    id:'uma', level:'conversational', tag:'Food · Conversational', scene:'ramen', float:'umai!',
     phrase:'Kore, meccha umai!', speech:'これ、めっちゃうまい！', en:'This is seriously delicious!',
     explain:'Umai is a casual way to say “tasty” or “delicious”. Meccha means “really” or “super” in casual speech.',
     words:[['kore','this'],['meccha','really / super'],['umai','delicious / tasty']],
     quiz:{q:'Which word is casual Japanese for “delicious”?', a:'umai', choices:['umai','tabemasu','doko']}
   },
   {
-    id:'where', level:'travel', tag:'Directions · Travel', scene:'street', float:'doko?',
+    id:'where', level:'beginner', tag:'Directions · Travel', scene:'street', float:'doko?',
     phrase:'Eki wa doko desu ka?', speech:'駅はどこですか？', en:'Where is the station?',
     explain:'Doko means “where”. Once you know the pattern “___ wa doko desu ka?”, you can ask where almost anything is.',
     words:[['eki','station'],['wa','topic marker'],['doko','where'],['desu ka','polite question ending']],
@@ -778,6 +784,105 @@ const topicPacks = [
 function allSearchPacks(){ return [...topicPacks,...situations]; }
 function findSearchPack(id){ return allSearchPacks().find(x=>x.id===id); }
 
+// v0.11.7: rebuilt Manabu Tutor for flexible English/romaji lookup + Live AI fallback.
+// Search packs become real feed lessons so useful vocabulary is not trapped inside Search,
+// and the curated higher-level bank adds progressively more natural grammar and nuance.
+const MANABU_LEVEL_LABELS={
+  beginner:'Beginner',conversational:'Conversational Beginner',intermediate:'Intermediate',upper:'Upper Intermediate',advanced:'Advanced',master:'Manabu Master'
+};
+const MANABU_PACK_STAGE={
+  // Core beginner topics + the most immediately useful situations.
+  'topic-colours':1,'topic-food':1,'topic-clothing':1,'topic-numbers':1,'topic-time':1,'topic-days':1,'topic-family':1,'topic-body':1,'topic-feelings':1,'topic-animals':1,'topic-house':1,'topic-verbs':1,'topic-adjectives':1,'topic-manners':1,
+  cafe:1,restaurant:1,directions:1,convenience:1,meeting:1,football:1,
+  // Wider everyday conversation and travel.
+  'topic-hobbies':2,'topic-work':2,'topic-nature':2,'topic-tech':2,
+  hotel:2,train:2,airport:2,shopping:2,taxi:2,themepark:2,pool:2,beach:2,bus:2,supermarket:2,school:2,gym:2,home:2,cinema:2,weather:2,
+  // Higher-stakes practical language starts at intermediate.
+  emergency:3,pharmacy:3,doctor:3
+};
+const MANABU_STAGE_LEVEL={1:'beginner',2:'conversational',3:'intermediate',4:'upper',5:'advanced',6:'master'};
+const MANABU_COMMON_CHUNKS=[
+  ['kore','this'],['sore','that'],['koko','here'],['doko','where'],['nani','what'],['nan','what'],['ikura','how much'],['itsu','when'],['dare','who'],
+  ['wa','topic marker'],['o','object marker'],['ga','subject / focus marker'],['ni','to / at / in'],['de','at / by / with'],['kara','from / because'],['made','until / as far as'],
+  ['desu','polite ending'],['desu ka','polite question ending'],['kudasai','please give / please do'],['onegaishimasu','please / I request it'],['arimasu','there is / have'],['arimasu ka','is there / do you have'],
+  ['ii desu ka','is it okay?'],['moraemasu ka','can I receive / can you do for me?'],['shite mo ii','may do / is it okay to do'],['motto','more'],['chotto','a little'],['totemo','very'],
+  ['hayai','fast / early'],['osoi','slow / late'],['ookii','big'],['chiisai','small'],['suki','like'],['itai','painful / hurts'],['daijoubu','okay / alright']
+];
+function manabuNormText(v){return String(v||'').toLowerCase().replace(/[.!?,/]/g,' ').replace(/\s+/g,' ').trim()}
+function manabuQuiz(id,phrase,en,alts=[]){
+  const fallback=['I do not know yet.','Please wait a moment.','That sounds good.','Where is it?','I would like this one.'];
+  const pool=[...alts,...fallback].filter(x=>x&&x!==en);
+  const picks=[];for(const x of pool){if(!picks.includes(x)){picks.push(x);if(picks.length===2)break}}
+  let choices=[en,...picks];while(choices.length<3)choices.push(fallback[choices.length]);
+  const shift=[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%choices.length;
+  choices=choices.slice(shift).concat(choices.slice(0,shift));
+  return {q:`What does “${phrase}” mean?`,a:en,choices};
+}
+function manabuPackWords(pack,phrase){
+  const hay=` ${manabuNormText(phrase.r)} `,out=[];
+  const add=(r,en)=>{const key=manabuNormText(r);if(!key||out.some(x=>manabuNormText(x[0])===key))return;out.push([r,en])};
+  [...(pack.words||[]).map(w=>[w.r,w.en]),...MANABU_COMMON_CHUNKS]
+    .sort((a,b)=>b[0].length-a[0].length)
+    .forEach(([r,en])=>{const key=manabuNormText(r);if(key&&hay.includes(` ${key} `))add(r,en)});
+  // A useful phrase can occasionally be one indivisible chunk. Keep at least one tappable item.
+  if(!out.length)add(phrase.r.replace(/[.!?]/g,''),phrase.en);
+  return out.slice(0,5);
+}
+function manabuSceneForPack(pack,index){
+  const id=pack.id||'';
+  if(/cafe|restaurant|food|convenience/.test(id))return 'cafe';
+  if(/train|airport|bus|taxi/.test(id))return 'station';
+  if(/doctor|pharmacy|emergency/.test(id))return 'night';
+  if(/shopping|supermarket|market/.test(id))return 'market';
+  if(/beach|pool|nature|weather/.test(id))return 'sunrise';
+  if(/home|house/.test(id))return 'city';
+  return ['city','street','sunrise','station'][index%4];
+}
+function addPackLessonsToFeed(){
+  const existingPhrase=new Set(lessons.map(l=>manabuNormText(l.phrase)));
+  const existingWordByLevel=new Set();
+  for(const pack of allSearchPacks()){
+    const stage=MANABU_PACK_STAGE[pack.id]||2, level=MANABU_STAGE_LEVEL[stage],label=MANABU_LEVEL_LABELS[level];
+    // Vocabulary spotlight cards. Pack words already contain reliable Japanese-script speech.
+    (pack.words||[]).forEach((w,i)=>{
+      const key=`${level}:${manabuNormText(w.r)}`;if(existingWordByLevel.has(key))return;existingWordByLevel.add(key);
+      lessons.push({id:`vocab-${level}-${pack.id}-${i}`,level,stage,tag:`${pack.name} · ${label}`,scene:manabuSceneForPack(pack,i),float:w.r,
+        phrase:w.r,speech:w.speech,en:w.en,explain:`A useful ${label.toLowerCase()} word from the ${pack.name} pack. Hear it, say it, then recognise it quickly in conversation.`,
+        words:[[w.r,w.en]],quiz:manabuQuiz(`vocab-${pack.id}-${i}`,w.r,w.en,(pack.words||[]).filter(x=>x!==w).map(x=>x.en))});
+    });
+    (pack.phrases||[]).forEach((ph,i)=>{
+      const norm=manabuNormText(ph.r);if(existingPhrase.has(norm))return;existingPhrase.add(norm);
+      lessons.push({id:`pack-${pack.id}-${i}`,level,stage,tag:`${pack.name} · ${label}`,scene:manabuSceneForPack(pack,i),float:ph.r.split(' ').slice(0,3).join(' '),
+        phrase:ph.r,speech:ph.speech,en:ph.en,explain:`Practical ${label.toLowerCase()} Japanese for ${pack.name.toLowerCase()}. Learn the whole sentence, then notice the reusable chunks.`,
+        words:manabuPackWords(pack,ph),quiz:manabuQuiz(`pack-${pack.id}-${i}`,ph.r,ph.en,(pack.phrases||[]).filter(x=>x!==ph).map(x=>x.en))});
+    });
+  }
+}
+addPackLessonsToFeed();
+
+const MANABU_CURATED_HIGHER = [{"id":"int-japan-trip","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"city","float":"Nihon ni ittara","phrase":"Nihon ni ittara, Kyoto ni mo itte mitai desu.","speech":"日本に行ったら、京都にも行ってみたいです。","en":"If I go to Japan, I would like to visit Kyoto too.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ittara","if / when I go","行ったら"],["itte mitai","would like to try going","行ってみたい"],["Kyoto","Kyoto","京都"]]},{"id":"int-coffee-time","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"station","float":"Jikan ga areba","phrase":"Jikan ga areba, issho ni koohii o nomimasen ka?","speech":"時間があれば、一緒にコーヒーを飲みませんか？","en":"If you have time, would you like to have coffee together?","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["jikan","time","時間"],["areba","if there is / if you have","あれば"],["issho ni","together","一緒に"]]},{"id":"int-spicy","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"cafe","float":"Kono ryouri wa omotta yori karakunai","phrase":"Kono ryouri wa omotta yori karakunai desu.","speech":"この料理は思ったより辛くないです。","en":"This dish is not as spicy as I expected.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ryouri","dish / cooking","料理"],["omotta yori","than I expected","思ったより"],["karakunai","not spicy","辛くない"]]},{"id":"int-late-meeting","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"night","float":"Densha ga okureta node","phrase":"Densha ga okureta node, kaigi ni maniaimasen deshita.","speech":"電車が遅れたので、会議に間に合いませんでした。","en":"The train was delayed, so I did not make it to the meeting in time.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["okureta","was delayed / late","遅れた"],["node","because / so","ので"],["maniaimasen deshita","did not make it in time","間に合いませんでした"]]},{"id":"int-busy","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"street","float":"Saikin","phrase":"Saikin, shigoto ga isogashikute, amari yasumeteimasen.","speech":"最近、仕事が忙しくて、あまり休めていません。","en":"Lately work has been busy, so I have not been getting much rest.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["saikin","lately / recently","最近"],["isogashikute","busy, and / because busy","忙しくて"],["yasumeteimasen","have not been able to rest","休めていません"]]},{"id":"int-one-year","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"market","float":"Nihongo o benkyou shihajimete","phrase":"Nihongo o benkyou shihajimete, mou ichinen ni narimasu.","speech":"日本語を勉強し始めて、もう一年になります。","en":"It has been a year since I started studying Japanese.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["shihajimete","started doing","し始めて"],["ichinen","one year","一年"],["ni narimasu","becomes / has been","になります"]]},{"id":"int-been-shop","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"sunrise","float":"Kono mise ni kita koto ga arimasu ka","phrase":"Kono mise ni kita koto ga arimasu ka?","speech":"この店に来たことがありますか？","en":"Have you been to this shop before?","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["mise","shop / store","店"],["kita koto ga arimasu","have been / have come before","来たことがあります"],["koto ga arimasu","have the experience of","ことがあります"]]},{"id":"int-while-music","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"ramen","float":"Ongaku o kikinagara","phrase":"Ongaku o kikinagara, benkyou shimasu.","speech":"音楽を聞きながら、勉強します。","en":"I study while listening to music.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ongaku","music","音楽"],["kikinagara","while listening","聞きながら"],["benkyou shimasu","study","勉強します"]]},{"id":"int-after-food","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"city","float":"Gohan o tabete kara","phrase":"Gohan o tabete kara, sanpo ni ikimashou.","speech":"ご飯を食べてから、散歩に行きましょう。","en":"After we eat, let us go for a walk.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tabete kara","after eating","食べてから"],["sanpo","walk / stroll","散歩"],["ikimashou","let us go","行きましょう"]]},{"id":"int-if-rain","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"station","float":"Ashita ame ga futtara","phrase":"Ashita ame ga futtara, ie ni imasu.","speech":"明日雨が降ったら、家にいます。","en":"If it rains tomorrow, I will stay home.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ame","rain","雨"],["futtara","if it rains","降ったら"],["ie","home / house","家"]]},{"id":"int-think-book","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"cafe","float":"Kono hon wa omoshiroi to omoimasu.","phrase":"Kono hon wa omoshiroi to omoimasu.","speech":"この本は面白いと思います。","en":"I think this book is interesting.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["hon","book","本"],["omoshiroi","interesting","面白い"],["to omoimasu","I think that...","と思います"]]},{"id":"int-looks-popular","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"night","float":"Ano mise wa ninki ga arisou desu.","phrase":"Ano mise wa ninki ga arisou desu.","speech":"あの店は人気がありそうです。","en":"That shop looks popular.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["mise","shop / store","店"],["ninki","popularity / popular","人気"],["arisou","looks like it has / seems","ありそう"]]},{"id":"int-too-much","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"street","float":"Kinou wa nomisugimashita.","phrase":"Kinou wa nomisugimashita.","speech":"昨日は飲みすぎました。","en":"I drank too much yesterday.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kinou","yesterday","昨日"],["nomu","to drink","飲む"],["nomisugimashita","drank too much","飲みすぎました"]]},{"id":"int-should-sleep","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"market","float":"Motto hayaku neta hou ga ii desu.","phrase":"Motto hayaku neta hou ga ii desu.","speech":"もっと早く寝たほうがいいです。","en":"You should go to bed earlier.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["hayaku","early / quickly","早く"],["neru","to sleep / go to bed","寝る"],["neta hou ga ii","it would be better to sleep / should sleep","寝たほうがいい"]]},{"id":"int-must-wake","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"sunrise","float":"Ashita wa hayaku okinakereba narimas","phrase":"Ashita wa hayaku okinakereba narimasen.","speech":"明日は早く起きなければなりません。","en":"I have to get up early tomorrow.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ashita","tomorrow","明日"],["hayaku","early","早く"],["okinakereba narimasen","must get up","起きなければなりません"]]},{"id":"int-shoes","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"ramen","float":"Kutsu o nuganakute mo ii desu ka?","phrase":"Kutsu o nuganakute mo ii desu ka?","speech":"靴を脱がなくてもいいですか？","en":"Is it okay if I do not take my shoes off?","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kutsu","shoes","靴"],["nugu","to take off","脱ぐ"],["nuganakute mo ii","do not have to take off","脱がなくてもいい"]]},{"id":"int-photo","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"city","float":"Koko de shashin o totte mo ii desu k","phrase":"Koko de shashin o totte mo ii desu ka?","speech":"ここで写真を撮ってもいいですか？","en":"May I take a photo here?","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["koko","here","ここ"],["shashin","photo","写真"],["totte mo ii","may take / is it okay to take","撮ってもいい"]]},{"id":"int-plan","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"station","float":"Raishuu Tokyo ni iku yotei desu.","phrase":"Raishuu Tokyo ni iku yotei desu.","speech":"来週東京に行く予定です。","en":"I plan to go to Tokyo next week.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["raishuu","next week","来週"],["yotei","plan / schedule","予定"],["iku","to go","行く"]]},{"id":"int-might-not-know","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"cafe","float":"Kare wa mada shiranai kamoshiremasen","phrase":"Kare wa mada shiranai kamoshiremasen.","speech":"彼はまだ知らないかもしれません。","en":"He might not know yet.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["mada","yet / still","まだ"],["shiranai","do not know","知らない"],["kamoshiremasen","might / perhaps","かもしれません"]]},{"id":"int-note","level":"intermediate","stage":3,"tag":"Language · Intermediate","scene":"night","float":"Wasurenai you ni","phrase":"Wasurenai you ni, memo shite okimasu.","speech":"忘れないように、メモしておきます。","en":"I will make a note so I do not forget.","explain":"Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["wasurenai you ni","so as not to forget","忘れないように"],["memo","note / memo","メモ"],["shite okimasu","do in advance","しておきます"]]},{"id":"upper-practice","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"city","float":"Setsumei wa wakarimashita ga","phrase":"Setsumei wa wakarimashita ga, jissai ni yaru no wa muzukashisou desu.","speech":"説明は分かりましたが、実際にやるのは難しそうです。","en":"I understood the explanation, but actually doing it looks difficult.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["setsumei","explanation","説明"],["jissai ni","in practice / actually","実際に"],["muzukashisou","looks difficult","難しそう"]]},{"id":"upper-plan-change","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"station","float":"Moshi yotei ga kawattara","phrase":"Moshi yotei ga kawattara, hayame ni oshiete kudasai.","speech":"もし予定が変わったら、早めに教えてください。","en":"If the plan changes, please tell me early.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["yotei","plan / schedule","予定"],["kawattara","if it changes","変わったら"],["hayame ni","early / ahead of time","早めに"]]},{"id":"upper-dont-forget","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"cafe","float":"Isoide iru kara to itte","phrase":"Isoide iru kara to itte, kakunin o wasurenaide kudasai.","speech":"急いでいるからといって、確認を忘れないでください。","en":"Just because you are in a hurry, do not forget to check.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["isoide iru","being in a hurry","急いでいる"],["kakunin","check / confirmation","確認"],["wasurenaide","do not forget","忘れないで"]]},{"id":"upper-not-simple","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"night","float":"Kono mondai wa omotta hodo kantan de","phrase":"Kono mondai wa omotta hodo kantan dewa arimasen.","speech":"この問題は思ったほど簡単ではありません。","en":"This problem is not as simple as I expected.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["mondai","problem / issue","問題"],["omotta hodo","as much as expected","思ったほど"],["kantan","simple / easy","簡単"]]},{"id":"upper-experience","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"street","float":"Kare wa keiken ga aru dake atte","phrase":"Kare wa keiken ga aru dake atte, setsumei ga wakariyasui desu.","speech":"彼は経験があるだけあって、説明が分かりやすいです。","en":"As you would expect from someone experienced, his explanation is easy to understand.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["keiken","experience","経験"],["dake atte","as expected given...","だけあって"],["wakariyasui","easy to understand","分かりやすい"]]},{"id":"upper-keigo","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"market","float":"Nihon de hataraku tame ni","phrase":"Nihon de hataraku tame ni, keigo o motto benkyou shiteimasu.","speech":"日本で働くために、敬語をもっと勉強しています。","en":"I am studying more honorific Japanese in order to work in Japan.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["hataraku tame ni","in order to work","働くために"],["keigo","honorific / polite Japanese","敬語"],["benkyou shiteimasu","am studying","勉強しています"]]},{"id":"upper-habit","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"sunrise","float":"Mainichi sukoshi demo hanasu you ni","phrase":"Mainichi sukoshi demo hanasu you ni shiteimasu.","speech":"毎日少しでも話すようにしています。","en":"I make a point of speaking at least a little every day.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["sukoshi demo","even a little","少しでも"],["hanasu","to speak","話す"],["you ni shiteimasu","make a habit / make an effort to","ようにしています"]]},{"id":"upper-prepare","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"ramen","float":"Kondo kara","phrase":"Kondo kara, wasurenai you ni mae no hi ni junbi shimasu.","speech":"今度から、忘れないように前の日に準備します。","en":"From now on, I will prepare the day before so I do not forget.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kondo kara","from now on / next time onward","今度から"],["mae no hi","the previous day","前の日"],["junbi","preparation","準備"]]},{"id":"upper-decided","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"city","float":"Yotei o kaeru koto ni shimashita.","phrase":"Yotei o kaeru koto ni shimashita.","speech":"予定を変えることにしました。","en":"I decided to change the plan.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["yotei","plan / schedule","予定"],["kaeru","to change","変える"],["koto ni shimashita","decided to do","ことにしました"]]},{"id":"upper-arranged","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"station","float":"Kaigi wa sanji kara hajimaru koto ni","phrase":"Kaigi wa sanji kara hajimaru koto ni natteimasu.","speech":"会議は三時から始まることになっています。","en":"The meeting is scheduled to start at three.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kaigi","meeting","会議"],["hajimaru","to begin","始まる"],["koto ni natteimasu","is arranged / is decided to","ことになっています"]]},{"id":"upper-should-have","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"cafe","float":"Ano toki motto kiite okeba yokatta d","phrase":"Ano toki motto kiite okeba yokatta desu.","speech":"あの時もっと聞いておけばよかったです。","en":"I should have asked more at the time.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ano toki","at that time","あの時"],["kiite okeba","if I had asked beforehand","聞いておけば"],["yokatta","would have been good / should have","よかった"]]},{"id":"upper-promise","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"night","float":"Tsukareteite mo","phrase":"Tsukareteite mo, yakusoku wa mamoritai desu.","speech":"疲れていても、約束は守りたいです。","en":"Even if I am tired, I want to keep my promise.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tsukareteite mo","even if tired","疲れていても"],["yakusoku","promise","約束"],["mamoritai","want to keep / protect","守りたい"]]},{"id":"upper-downside","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"street","float":"Benri na hanmen","phrase":"Benri na hanmen, tsukai kata ni wa chuui ga hitsuyou desu.","speech":"便利な反面、使い方には注意が必要です。","en":"It is convenient, but on the other hand you need to be careful how you use it.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["benri","convenient","便利"],["hanmen","on the other hand","反面"],["chuui","caution / care","注意"]]},{"id":"upper-for-me","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"market","float":"Watashi ni totte","phrase":"Watashi ni totte, koko wa taisetsu na basho desu.","speech":"私にとって、ここは大切な場所です。","en":"For me, this is an important place.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ni totte","for / from the viewpoint of","にとって"],["taisetsu","important / precious","大切"],["basho","place","場所"]]},{"id":"upper-result","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"sunrise","float":"Kono kekka ni tsuite","phrase":"Kono kekka ni tsuite, dou omoimasu ka?","speech":"この結果について、どう思いますか？","en":"What do you think about this result?","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kekka","result","結果"],["ni tsuite","about / regarding","について"],["dou omoimasu ka","what do you think?","どう思いますか"]]},{"id":"upper-weather","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"ramen","float":"Tenki ni yotte","phrase":"Tenki ni yotte, yotei o kaeru kamoshiremasen.","speech":"天気によって、予定を変えるかもしれません。","en":"Depending on the weather, we might change the plan.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tenki","weather","天気"],["ni yotte","depending on / according to","によって"],["kaeru","to change","変える"]]},{"id":"upper-respect","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"city","float":"Kare wa sensei toshite mo","phrase":"Kare wa sensei toshite mo, hitori no hito toshite mo sonkei shiteimasu.","speech":"彼は先生としても、一人の人としても尊敬しています。","en":"I respect him both as a teacher and as a person.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["sensei","teacher","先生"],["toshite","as / in the role of","として"],["sonkei shiteimasu","respect","尊敬しています"]]},{"id":"upper-despite-time","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"station","float":"Jikan ga nai noni","phrase":"Jikan ga nai noni, tetsudatte kuremashita.","speech":"時間がないのに、手伝ってくれました。","en":"Even though they had no time, they helped me.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["noni","even though","のに"],["tetsudatte kuremashita","helped me / did me the favour of helping","手伝ってくれました"],["jikan","time","時間"]]},{"id":"upper-addition","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"cafe","float":"Sore ni kuwaete","phrase":"Sore ni kuwaete, kantan de anzen na houhou o sagashiteimasu.","speech":"それに加えて、簡単で安全な方法を探しています。","en":"In addition, I am looking for a simple and safe method.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["sore ni kuwaete","in addition to that","それに加えて"],["anzen","safe / safety","安全"],["houhou","method / way","方法"]]},{"id":"upper-catalyst","level":"upper","stage":4,"tag":"Language · Upper Intermediate","scene":"night","float":"Kono keiken ga","phrase":"Kono keiken ga, jibun de kangaeru kikkake ni narimashita.","speech":"この経験が、自分で考えるきっかけになりました。","en":"This experience became a reason for me to think for myself.","explain":"Upper Intermediate Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["jibun de","by oneself","自分で"],["kangaeru","to think","考える"],["kikkake","trigger / opportunity","きっかけ"]]},{"id":"adv-cost","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"city","float":"Kono mondai wa","phrase":"Kono mondai wa, tannaru kosuto no mondai dewa naku, shourai no sentaku ni mo kakawatteimasu.","speech":"この問題は、単なるコストの問題ではなく、将来の選択にも関わっています。","en":"This is not simply a cost issue; it also affects our future choices.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tannaru","mere / simply","単なる"],["shourai","future","将来"],["kakawatteimasu","is connected with / affects","関わっています"]]},{"id":"adv-common-goal","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"station","float":"Iken ga wakareru no wa touzen desu g","phrase":"Iken ga wakareru no wa touzen desu ga, kyoutsuu no mokuteki wa wasuretakunai desu.","speech":"意見が分かれるのは当然ですが、共通の目的は忘れたくないです。","en":"It is natural for opinions to differ, but I do not want us to forget the common goal.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["iken","opinion","意見"],["wakareru","to split / differ","分かれる"],["kyoutsuu no mokuteki","common goal","共通の目的"]]},{"id":"adv-situation","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"cafe","float":"Joukyou ni oujite","phrase":"Joukyou ni oujite, houhou o kaeru hitsuyou ga arimasu.","speech":"状況に応じて、方法を変える必要があります。","en":"We need to change the approach according to the situation.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["joukyou ni oujite","according to the situation","状況に応じて"],["houhou","method / approach","方法"],["kaeru","to change","変える"]]},{"id":"adv-process","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"night","float":"Kekka dake de naku","phrase":"Kekka dake de naku, sono katei mo juuyou da to kangaeteimasu.","speech":"結果だけでなく、その過程も重要だと考えています。","en":"I believe not only the result, but also the process, is important.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kekka","result","結果"],["katei","process","過程"],["juuyou","important","重要"]]},{"id":"adv-data","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"street","float":"Kono data ni motozuite","phrase":"Kono data ni motozuite, tsugi no houshin o kimemashou.","speech":"このデータに基づいて、次の方針を決めましょう。","en":"Let us decide the next policy based on this data.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["data","data","データ"],["ni motozuite","based on","に基づいて"],["houshin","policy / direction","方針"]]},{"id":"adv-population","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"market","float":"Jinkou ga fueru ni tomonatte","phrase":"Jinkou ga fueru ni tomonatte, juutaku no mondai mo ookiku natteimasu.","speech":"人口が増えるに伴って、住宅の問題も大きくなっています。","en":"As the population grows, the housing problem is also becoming larger.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ni tomonatte","along with / as","に伴って"],["juutaku","housing","住宅"],["mondai","problem / issue","問題"]]},{"id":"adv-experience","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"sunrise","float":"Keiken o kasaneru ni tsurete","phrase":"Keiken o kasaneru ni tsurete, kangaekata ga kawatte kimashita.","speech":"経験を重ねるにつれて、考え方が変わってきました。","en":"As I gained experience, my way of thinking gradually changed.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["keiken o kasaneru","to accumulate experience","経験を重ねる"],["ni tsurete","as / in proportion as","につれて"],["kangaekata","way of thinking","考え方"]]},{"id":"adv-time","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"ramen","float":"Jikan ga tatsu ni shitagatte","phrase":"Jikan ga tatsu ni shitagatte, kinchou mo yawaraide kimashita.","speech":"時間が経つに従って、緊張も和らいできました。","en":"As time passed, the tension gradually eased.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ni shitagatte","as / in accordance with","に従って"],["kinchou","tension / nervousness","緊張"],["yawaraide","softening / easing","和らいで"]]},{"id":"adv-not-decided","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"city","float":"Kangaeteita mono no","phrase":"Kangaeteita mono no, mada ketsudan dekiteimasen.","speech":"考えていたものの、まだ決断できていません。","en":"Although I have been thinking about it, I still have not made a decision.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["mono no","although / even though","ものの"],["ketsudan","decision","決断"],["mada","still / yet","まだ"]]},{"id":"adv-not-always","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"station","float":"Takai kara to itte","phrase":"Takai kara to itte, kanarazu shimo hinshitsu ga ii to wa kagirimasen.","speech":"高いからといって、必ずしも品質がいいとは限りません。","en":"Just because it is expensive does not necessarily mean the quality is good.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kanarazu shimo","not necessarily","必ずしも"],["hinshitsu","quality","品質"],["to wa kagirimasen","is not necessarily the case","とは限りません"]]},{"id":"adv-rewarding","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"cafe","float":"Kono shigoto wa muzukashii ga","phrase":"Kono shigoto wa muzukashii ga, yarigai ga aru to kanjimasu.","speech":"この仕事は難しいが、やりがいがあると感じます。","en":"This work is difficult, but I feel it is rewarding.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["yarigai","sense of reward / worth doing","やりがい"],["kanjimasu","feel / sense","感じます"],["muzukashii","difficult","難しい"]]},{"id":"adv-now-that","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"night","float":"Mondai ga okita ijou","phrase":"Mondai ga okita ijou, taiou shinakereba narimasen.","speech":"問題が起きた以上、対応しなければなりません。","en":"Now that the problem has occurred, we have to deal with it.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ijou","now that / given that","以上"],["taiou","response / handling","対応"],["shinakereba narimasen","must do","しなければなりません"]]},{"id":"adv-without-help","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"street","float":"Kare no tasuke nashi de wa","phrase":"Kare no tasuke nashi de wa, koko made koraremasen deshita.","speech":"彼の助けなしでは、ここまで来られませんでした。","en":"Without his help, I could not have come this far.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tasuke nashi de wa","without help","助けなしでは"],["koko made","this far","ここまで"],["koraremasen deshita","could not have come","来られませんでした"]]},{"id":"adv-implementation","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"market","float":"Kono keikaku o jikkou suru ni atatte","phrase":"Kono keikaku o jikkou suru ni atatte, juubun na junbi ga hitsuyou desu.","speech":"この計画を実行するにあたって、十分な準備が必要です。","en":"When carrying out this plan, sufficient preparation is necessary.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["jikkou suru ni atatte","when carrying out / on the occasion of","実行するにあたって"],["juubun","sufficient","十分"],["junbi","preparation","準備"]]},{"id":"adv-system","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"sunrise","float":"Atarashii seido o megutte","phrase":"Atarashii seido o megutte, samazama na iken ga deteimasu.","speech":"新しい制度をめぐって、さまざまな意見が出ています。","en":"Various opinions are being expressed regarding the new system.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["seido","system / institution","制度"],["o megutte","concerning / surrounding","をめぐって"],["samazama","various","さまざま"]]},{"id":"adv-impact","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"ramen","float":"Kono henka wa","phrase":"Kono henka wa, watashitachi no seikatsu ni mo eikyou o ataeru deshou.","speech":"この変化は、私たちの生活にも影響を与えるでしょう。","en":"This change will probably affect our lives as well.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["henka","change","変化"],["seikatsu","daily life","生活"],["eikyou o ataeru","to have an effect / influence","影響を与える"]]},{"id":"adv-despite","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"city","float":"Kibishii jouken ni mo kakawarazu","phrase":"Kibishii jouken ni mo kakawarazu, kare wa yakusoku o hatashimashita.","speech":"厳しい条件にもかかわらず、彼は約束を果たしました。","en":"Despite the difficult conditions, he fulfilled his promise.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kibishii jouken","harsh conditions","厳しい条件"],["ni mo kakawarazu","despite / in spite of","にもかかわらず"],["hatashimashita","fulfilled / accomplished","果たしました"]]},{"id":"adv-cant-quit","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"station","float":"Ima koko de akirameru wake ni wa iki","phrase":"Ima koko de akirameru wake ni wa ikimasen.","speech":"今ここで諦めるわけにはいきません。","en":"I cannot allow myself to give up here now.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["akirameru","to give up","諦める"],["wake ni wa ikimasen","cannot / cannot allow oneself to","わけにはいきません"],["ima","now","今"]]},{"id":"adv-logic","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"cafe","float":"Ronri teki ni setsumei sarete mo","phrase":"Ronri teki ni setsumei sarete mo, kanjou teki ni wa nattoku dekinai koto mo arimasu.","speech":"論理的に説明されても、感情的には納得できないこともあります。","en":"Even when something is explained logically, there are times when I cannot accept it emotionally.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ronri teki ni","logically","論理的に"],["kanjou teki ni","emotionally","感情的に"],["nattoku","acceptance / being convinced","納得"]]},{"id":"adv-more-review","level":"advanced","stage":5,"tag":"Language · Advanced","scene":"night","float":"Mou sukoshi kentou suru yoyuu ga are","phrase":"Mou sukoshi kentou suru yoyuu ga areba, yori yoi ketsuron ni naru to omoimasu.","speech":"もう少し検討する余裕があれば、より良い結論になると思います。","en":"If we had a little more room to consider it, I think we could reach a better conclusion.","explain":"Advanced Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kentou","consideration / examination","検討"],["yoyuu","room / leeway","余裕"],["ketsuron","conclusion","結論"]]},{"id":"master-not-simple","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"city","float":"Ichi gai ni dochira ga tadashii to w","phrase":"Ichi gai ni dochira ga tadashii to wa iikiremasen.","speech":"一概にどちらが正しいとは言い切れません。","en":"You cannot simply say that one side is definitely correct.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ichi gai ni","sweepingly / without qualification","一概に"],["tadashii","correct","正しい"],["iikiremasen","cannot state categorically","言い切れません"]]},{"id":"master-context","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"station","float":"Sono hyougen wa bunmyaku ni yotte wa","phrase":"Sono hyougen wa bunmyaku ni yotte wa sukoshi kitsuku kikoeru kamoshiremasen.","speech":"その表現は文脈によっては少しきつく聞こえるかもしれません。","en":"Depending on the context, that expression may sound a little harsh.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["bunmyaku","context","文脈"],["kitsuku","harshly / strongly","きつく"],["kikoeru","to sound / be heard","聞こえる"]]},{"id":"master-hasty","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"cafe","float":"Hyoumen dake o mite handan suru no w","phrase":"Hyoumen dake o mite handan suru no wa soukei desu.","speech":"表面だけを見て判断するのは早計です。","en":"It is hasty to judge based only on the surface.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["hyoumen","surface / outward appearance","表面"],["handan","judgment / decision","判断"],["soukei","hasty judgment","早計"]]},{"id":"master-no-turning-back","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"night","float":"Koko made kita ijou","phrase":"Koko made kita ijou, ato ni wa hikenai to omotteimasu.","speech":"ここまで来た以上、後には引けないと思っています。","en":"Now that we have come this far, I feel we cannot turn back.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ijou","now that / given that","以上"],["ato ni wa hikenai","cannot back down / turn back","後には引けない"],["omotteimasu","I think / feel","思っています"]]},{"id":"master-persuasive","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"street","float":"Kare no setsumei wa suji ga tootteit","phrase":"Kare no setsumei wa suji ga tootteite, settokuryoku ga arimasu.","speech":"彼の説明は筋が通っていて、説得力があります。","en":"His explanation is logical and persuasive.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["suji ga tootteite","is logically consistent","筋が通っていて"],["settokuryoku","persuasiveness","説得力"],["setsumei","explanation","説明"]]},{"id":"master-keep-in-mind","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"market","float":"Sono ten wa kokoro ni tomete oku bek","phrase":"Sono ten wa kokoro ni tomete oku beki desu.","speech":"その点は心に留めておくべきです。","en":"That point is something we should keep in mind.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["kokoro ni tomete oku","keep in mind","心に留めておく"],["beki","should / ought to","べき"],["sono ten","that point","その点"]]},{"id":"master-complicated","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"sunrise","float":"Kono mondai wa hitosuji nawa de wa i","phrase":"Kono mondai wa hitosuji nawa de wa ikimasen.","speech":"この問題は一筋縄ではいきません。","en":"This problem is not something that can be solved easily or straightforwardly.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["hitosuji nawa de wa ikimasen","is not straightforward / not easily handled","一筋縄ではいきません"],["mondai","problem / issue","問題"],["kaiketsu","solution / resolution","解決"]]},{"id":"master-visible-results","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"ramen","float":"Sukoshi zutsu desu ga","phrase":"Sukoshi zutsu desu ga, seika ga me ni miete arawarete kimashita.","speech":"少しずつですが、成果が目に見えて現れてきました。","en":"Little by little, the results have started to become visibly apparent.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["seika","results /成果","成果"],["me ni miete","visibly / clearly","目に見えて"],["arawarete kimashita","have begun to appear","現れてきました"]]},{"id":"master-understandable","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"city","float":"Sou kangaeru no mo muri wa nai to om","phrase":"Sou kangaeru no mo muri wa nai to omoimasu.","speech":"そう考えるのも無理はないと思います。","en":"I think it is understandable that someone would see it that way.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["muri wa nai","is understandable / not unreasonable","無理はない"],["kangaeru","to think / consider","考える"],["sou","that way / so","そう"]]},{"id":"master-no-choice","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"station","float":"Kono joukyou de wa","phrase":"Kono joukyou de wa, keikaku o minaosazaru o enai deshou.","speech":"この状況では、計画を見直さざるを得ないでしょう。","en":"In this situation, we will probably have no choice but to review the plan.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["minaosazaru o enai","have no choice but to review","見直さざるを得ない"],["joukyou","situation / circumstances","状況"],["keikaku","plan","計画"]]},{"id":"master-heart","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"cafe","float":"Kare no hatsugen wa","phrase":"Kare no hatsugen wa, aru imi de mondai no honshitsu o tsuiteimasu.","speech":"彼の発言は、ある意味で問題の本質を突いています。","en":"In a sense, his comment gets to the heart of the issue.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["hatsugen","statement / remark","発言"],["honshitsu","essence / heart of the matter","本質"],["tsuiteimasu","is hitting / pinpointing","突いています"]]},{"id":"master-hard-to-put","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"night","float":"Nan to iu ka","phrase":"Nan to iu ka, kotoba ni suru no ga muzukashii kanji desu.","speech":"何というか、言葉にするのが難しい感じです。","en":"It is hard to put into words, somehow.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["nan to iu ka","how should I put it / somehow","何というか"],["kotoba ni suru","put into words","言葉にする"],["muzukashii","difficult","難しい"]]},{"id":"master-worth-it","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"street","float":"Kekka wa dou are","phrase":"Kekka wa dou are, yaru dake no kachi wa aru to omoimasu.","speech":"結果はどうあれ、やるだけの価値はあると思います。","en":"Whatever the result, I think it is worth doing.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["dou are","whatever it may be","どうあれ"],["kachi","value / worth","価値"],["yaru dake","worth doing / doing it","やるだけ"]]},{"id":"master-blame","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"market","float":"Tanin no sei ni suru dake de wa","phrase":"Tanin no sei ni suru dake de wa, konkai no mondai wa kaiketsu shimasen.","speech":"他人のせいにするだけでは、今回の問題は解決しません。","en":"Simply blaming other people will not solve this problem.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tanin no sei ni suru","blame another person","他人のせいにする"],["konkai","this time / this instance","今回"],["kaiketsu shimasen","will not solve","解決しません"]]},{"id":"master-circumstances","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"sunrise","float":"Joukyou o fumaereba","phrase":"Joukyou o fumaereba, sono handan wa juubun rikai dekimasu.","speech":"状況を踏まえれば、その判断は十分理解できます。","en":"Taking the circumstances into account, that decision is quite understandable.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["joukyou o fumaereba","taking the circumstances into account","状況を踏まえれば"],["handan","decision / judgment","判断"],["rikai dekimasu","can understand","理解できます"]]},{"id":"master-one-by-one","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"ramen","float":"Ima dekiru koto o hitotsu zutsu yatt","phrase":"Ima dekiru koto o hitotsu zutsu yatte iku shika arimasen.","speech":"今できることを一つずつやっていくしかありません。","en":"All we can do is tackle what we can, one thing at a time.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["ima dekiru koto","what can be done now","今できること"],["hitotsu zutsu","one by one","一つずつ"],["shika arimasen","there is no choice but / only","しかありません"]]},{"id":"master-position","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"city","float":"Kare no tachiba o kangaereba","phrase":"Kare no tachiba o kangaereba, sou iu hannou ni naru no mo wakarimasu.","speech":"彼の立場を考えれば、そういう反応になるのも分かります。","en":"Considering his position, I can understand why he would react that way.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["tachiba","position / standpoint","立場"],["hannou","reaction","反応"],["kangaereba","if you consider","考えれば"]]},{"id":"master-word-choice","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"station","float":"Kotoba no sentaku hitotsu de","phrase":"Kotoba no sentaku hitotsu de, uke torarekata ga ookiku kawaru koto ga arimasu.","speech":"言葉の選択一つで、受け取られ方が大きく変わることがあります。","en":"A single word choice can greatly change how something is received.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["sentaku","choice / selection","選択"],["uke torarekata","the way something is received","受け取られ方"],["kawaru","to change","変わる"]]},{"id":"master-premise","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"cafe","float":"Kono hanashi wa","phrase":"Kono hanashi wa, zentei ga kawareba ketsuron mo kawatte kimasu.","speech":"この話は、前提が変われば結論も変わってきます。","en":"If the premise changes, the conclusion changes too.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["zentei","premise / assumption","前提"],["ketsuron","conclusion","結論"],["kawatte kimasu","changes over time / comes to change","変わってきます"]]},{"id":"master-plausible","level":"master","stage":6,"tag":"Language · Manabu Master","scene":"night","float":"Mottomo rashii kotae ga","phrase":"Mottomo rashii kotae ga, kanarazu shimo saiteki na kotae to wa kagirimasen.","speech":"もっともらしい答えが、必ずしも最適な答えとは限りません。","en":"The most plausible answer is not necessarily the optimal answer.","explain":"Manabu Master Japanese: learn this as a complete spoken pattern, then tap the key chunks below.","words":[["mottomo rashii","plausible / seemingly reasonable","もっともらしい"],["saiteki","optimal / most suitable","最適"],["to wa kagirimasen","is not necessarily the case","とは限りません"]]}];
+(function addCuratedHigherLessons(){
+  const stageEnglish={3:'Intermediate',4:'Upper Intermediate',5:'Advanced',6:'Manabu Master'};
+  const byStage={};MANABU_CURATED_HIGHER.forEach(x=>(byStage[x.stage]||(byStage[x.stage]=[])).push(x));
+  for(const item of MANABU_CURATED_HIGHER){
+    const alts=(byStage[item.stage]||[]).filter(x=>x.id!==item.id).map(x=>x.en);
+    lessons.push({...item,quiz:manabuQuiz(item.id,item.phrase,item.en,alts)});
+  }
+  // Turn the key vocabulary from higher-level sentences into dedicated vocabulary cards too.
+  // The third item in each word tuple is native Japanese script used only for speech synthesis.
+  const seen=new Set();
+  for(const item of MANABU_CURATED_HIGHER){
+    (item.words||[]).forEach((w,i)=>{
+      if(!w[2])return;const key=`${item.level}:${manabuNormText(w[0])}`;if(seen.has(key))return;seen.add(key);
+      const id=`vocab-${item.level}-${item.id}-${i}`;
+      lessons.push({id,level:item.level,stage:item.stage,tag:`Vocabulary · ${stageEnglish[item.stage]}`,scene:item.scene,float:w[0],phrase:w[0],speech:w[2],en:w[1],
+        explain:`Key ${stageEnglish[item.stage].toLowerCase()} vocabulary. Learn the word on its own, then you will meet it again inside full sentences.`,words:[[w[0],w[1]]],
+        quiz:manabuQuiz(id,w[0],w[1],MANABU_CURATED_HIGHER.filter(x=>x.stage===item.stage).flatMap(x=>x.words.map(z=>z[1])).filter(x=>x!==w[1]))});
+    });
+  }
+})();
+
+
 let activeSituationId=null;
 let situationQuery='';
 const savedSituationPhrases=new Set(JSON.parse(localStorage.getItem('moshiSavedSituationPhrases')||'[]'));
@@ -800,6 +905,53 @@ const sceneSvg = (type) => {
 }
 
 const feed = document.getElementById('feed');
+const FEED_STATE_KEY='manabuFeedStateV1';
+let feedState=(()=>{try{return Object.assign({currentFilter:'all',positions:{}},JSON.parse(localStorage.getItem(FEED_STATE_KEY)||'{}'))}catch(e){return {currentFilter:'all',positions:{}}}})();
+if(!['all','beginner','conversational','intermediate','upper','advanced','master'].includes(feedState.currentFilter))feedState.currentFilter='all';
+feedState.positions=feedState.positions||{};
+let currentFeedFilter=feedState.currentFilter;
+let feedSaveTimer=null;
+function feedCardKey(card){
+  if(!card)return '';
+  if(card.dataset.id)return `lesson:${card.dataset.id}`;
+  if(card.dataset.reviewId)return `review:${card.dataset.reviewId}`;
+  return '';
+}
+function saveFeedState(){
+  feedState.currentFilter=currentFeedFilter;
+  localStorage.setItem(FEED_STATE_KEY,JSON.stringify(feedState));
+}
+function persistFeedPosition(){
+  if(!feed||feed.style.display==='none'||!feed.children.length)return;
+  const cards=[...feed.querySelectorAll('.lesson')];
+  if(!cards.length)return;
+  const top=feed.scrollTop;
+  let current=cards[0],best=Math.abs(cards[0].offsetTop-top);
+  for(const card of cards.slice(1)){
+    const d=Math.abs(card.offsetTop-top);
+    if(d<best){best=d;current=card}
+  }
+  feedState.positions[currentFeedFilter]={key:feedCardKey(current),scrollTop:top,updatedAt:Date.now()};
+  saveFeedState();
+}
+function restoreFeedPosition(filter=currentFeedFilter){
+  const savedPos=feedState.positions?.[filter];
+  if(!savedPos){feed.scrollTop=0;return}
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    let target=null;
+    if(savedPos.key?.startsWith('lesson:'))target=feed.querySelector(`[data-id="${CSS.escape(savedPos.key.slice(7))}"]`);
+    else if(savedPos.key?.startsWith('review:'))target=feed.querySelector(`[data-review-id="${CSS.escape(savedPos.key.slice(7))}"]`);
+    const y=target?target.offsetTop:Number(savedPos.scrollTop||0);
+    feed.scrollTop=Math.max(0,y);
+  }));
+}
+feed.addEventListener('scroll',()=>{
+  clearTimeout(feedSaveTimer);
+  feedSaveTimer=setTimeout(persistFeedPosition,120);
+},{passive:true});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)persistFeedPosition()});
+window.addEventListener('pagehide',persistFeedPosition);
+window.addEventListener('beforeunload',persistFeedPosition);
 const saved = new Set(JSON.parse(localStorage.getItem('moshiSaved') || '[]'));
 const completedQuizzes = new Set(JSON.parse(localStorage.getItem('moshiCompletedQuizzes') || '[]'));
 const completedSpeech = new Set(JSON.parse(localStorage.getItem('moshiCompletedSpeech') || '[]'));
@@ -817,17 +969,26 @@ const completedPackPractice = new Set(JSON.parse(localStorage.getItem('manabuCom
 const completedRoleplays = new Set(JSON.parse(localStorage.getItem('manabuCompletedRoleplays') || '[]'));
 
 let wordIntel=(()=>{try{return JSON.parse(localStorage.getItem('manabuWordIntel')||'{}')}catch(e){return {}}})();
-const lessonCurriculumOrder={
-  haiiie:1,arigatou:2,daijobu:3,onegaishimasu:4,wakarimasen:5,desuka:6,ohayo:7,mizu:8,toire:9,kudasai:10,
-  nanidesuka:11,where:12,mouichido:13,yukkuri:14,ikura:15,oishii:16,sukidesu:17,onakagasuita:18,tsukareta:19,matane:20,yoroshiku:21,uma:22
-};
-function lessonCurriculumTier(l){const n=lessonCurriculumOrder[l.id]||99;return n<=10?1:n<=16?2:n<=21?3:4}
+function lessonCurriculumTier(l){
+  if(Number.isFinite(Number(l?.stage)))return Number(l.stage);
+  if(l?.level==='beginner')return 1;
+  if(l?.level==='conversational')return 2;
+  if(l?.level==='intermediate')return 3;
+  if(l?.level==='upper')return 4;
+  if(l?.level==='advanced')return 5;
+  if(l?.level==='master')return 6;
+  return 1;
+}
+const lessonCurriculumOrder={};
+(()=>{const counts={};lessons.forEach(l=>{const t=lessonCurriculumTier(l);counts[t]=(counts[t]||0)+1;lessonCurriculumOrder[l.id]=counts[t]})})();
 function curriculumInfo(){
   const n=(learningStats?.learnedWords||[]).length;
-  if(n<8)return {tier:1,name:'Core Japanese',copy:'Most common + most basic'};
-  if(n<20)return {tier:2,name:'Everyday Japanese',copy:'Common + less basic'};
-  if(n<40)return {tier:3,name:'Conversational Japanese',copy:'Common + more flexible'};
-  return {tier:4,name:'Expanded Japanese',copy:'Less common + broader vocabulary'};
+  if(n<40)return {tier:1,name:'Beginner',copy:'Core words + survival Japanese'};
+  if(n<100)return {tier:2,name:'Conversational Beginner',copy:'Everyday situations + flexible basics'};
+  if(n<180)return {tier:3,name:'Intermediate',copy:'Longer sentences + useful grammar patterns'};
+  if(n<280)return {tier:4,name:'Upper Intermediate',copy:'More natural connections + nuance'};
+  if(n<400)return {tier:5,name:'Advanced',copy:'Complex ideas + precise expression'};
+  return {tier:6,name:'Manabu Master',copy:'Nuanced, natural Japanese across contexts'};
 }
 function saveWordIntel(){localStorage.setItem('manabuWordIntel',JSON.stringify(wordIntel))}
 function wordRecord(word,meaning=''){
@@ -1038,7 +1199,7 @@ function setupLessonExposureTracking(){
   feed.querySelectorAll('.lesson[data-id]').forEach(el=>exposureObserver.observe(el));
 }
 
-const MANABU_VERSION='0.11.0-beta';
+const MANABU_VERSION='0.11.7-beta';
 let profileName=localStorage.getItem('manabuProfileName')||'My Japanese';
 let appPrefs=(()=>{try{return Object.assign({textSize:'default',reducedMotion:false,highContrast:false,localDiagnostics:true,ambientEnabled:false,ambientVolume:.14},JSON.parse(localStorage.getItem('manabuAppPrefs')||'{}'))}catch(e){return {textSize:'default',reducedMotion:false,highContrast:false,localDiagnostics:true,ambientEnabled:false,ambientVolume:.14}}})();
 function persistAppPrefs(){localStorage.setItem('manabuAppPrefs',JSON.stringify(appPrefs))}
@@ -1329,26 +1490,27 @@ function reviewCardHtml(r){
 
 function goalMatch(l){
   const hay=`${l.tag} ${l.explain}`.toLowerCase();
-  if(selectedGoal==='Travel')return l.level==='travel'||/café|shopping|directions|travel/.test(hay);
-  if(selectedGoal==='Conversation')return /conversation|introductions|questions|everyday/.test(hay)||l.id==='daijobu';
-  if(selectedGoal==='Anime')return /casual|food/.test(hay)||['uma','daijobu','arigatou'].includes(l.id);
-  return l.level==='beginner'||l.level==='all';
+  if(selectedGoal==='Travel')return /café|cafe|shopping|directions|travel|train|airport|hotel|taxi|bus|restaurant/.test(hay);
+  if(selectedGoal==='Conversation')return /conversation|introductions|questions|everyday|meeting|feelings|hobbies/.test(hay)||l.id==='daijobu';
+  if(selectedGoal==='Anime')return /casual|food|feelings|conversation/.test(hay)||['uma','daijobu','arigatou'].includes(l.id);
+  return lessonCurriculumTier(l)<=2;
 }
 function adaptiveLessons(list){
   const curriculum=curriculumInfo();
   return [...list].map((l,index)=>{
-    const order=lessonCurriculumOrder[l.id]||99;
+    const order=lessonCurriculumOrder[l.id]||999;
     const tier=lessonCurriculumTier(l);
     const weak=Math.max(0,...l.words.map(([w])=>wordWeakness(w)));
     const seen=l.words.some(([w])=>learningStats.totalWords.includes(normalizeLearningWord(w)));
     const complete=completedQuizzes.has(l.id)&&completedSpeech.has(l.id);
-    // New material follows frequency/usefulness first. Weak encountered words may resurface,
-    // but unseen niche material cannot leapfrog the core curriculum merely because of a goal match.
+    // Prioritise the learner's current level, keep a little review behind them,
+    // and stop far-future material swamping the feed.
     let score=order;
-    if(tier>curriculum.tier)score+=(tier-curriculum.tier)*35;
-    if(seen&&weak>0)score-=Math.min(18,weak*4);
-    if(complete)score+=24;
-    if(goalMatch(l)&&tier<=curriculum.tier+1)score-=2;
+    if(tier<curriculum.tier)score+=320+(curriculum.tier-tier)*110;
+    if(tier>curriculum.tier)score+=520+(tier-curriculum.tier)*360;
+    if(seen&&weak>0)score-=Math.min(90,weak*12);
+    if(complete)score+=260;
+    if(goalMatch(l)&&tier<=curriculum.tier+1)score-=8;
     return {l,index,score};
   }).sort((a,b)=>a.score-b.score||a.index-b.index).map(x=>x.l);
 }
@@ -1357,10 +1519,12 @@ function recommendationReason(l){
   if(weak>0)return '↻ Focus · a word you missed needs another look';
   const ci=curriculumInfo();return `✦ ${ci.name} · ${ci.copy}`;
 }
-function renderFeed(filter='all'){
-  let visible=lessons.filter(l=>filter==='all'||l.level===filter||l.level==='all');
-  if(filter==='all')visible=adaptiveLessons(visible);
-  else if(filter==='beginner')visible=[...visible].sort((a,b)=>(lessonCurriculumOrder[a.id]||99)-(lessonCurriculumOrder[b.id]||99));
+function renderFeed(filter='all',options={}){
+  currentFeedFilter=['all','beginner','conversational','intermediate','upper','advanced','master'].includes(filter)?filter:'all';
+  saveFeedState();
+  let visible=lessons.filter(l=>filter==='all'||l.level===filter);
+  if(filter==='all')visible=adaptiveLessons(visible).slice(0,180);
+  else visible=[...visible].sort((a,b)=>(lessonCurriculumOrder[a.id]||999)-(lessonCurriculumOrder[b.id]||999));
   const items=buildFeedItems(visible,filter);
   // Migrate any memory checks completed before this feature existed into total learned
   // vocabulary without pretending they were learned today.
@@ -1396,6 +1560,7 @@ function renderFeed(filter='all'){
   attachLessonEvents();
   attachReviewEvents(items.filter(x=>x.type==='review'));
   setupLessonExposureTracking();
+  if(options.restore)restoreFeedPosition(currentFeedFilter);
 }
 
 function attachReviewEvents(reviewItems){
@@ -1723,46 +1888,105 @@ function translateKnown(text){
   };
   return map[key]||'';
 }
-function normalizeTutorText(text){return String(text||'').toLowerCase().trim().replace(/[?!.,'\"]+/g,' ').replace(/\s+/g,' ')}
+function normalizeTutorText(text){return String(text||'').toLowerCase().trim().replace(/[?!.,'\"“”‘’：:;()\[\]]+/g,' ').replace(/\s+/g,' ').trim()}
+function tutorEnglishAliases(value){
+  const base=normalizeTutorText(value).replace(/^(?:a|an|the|to)\s+/,'');
+  if(!base)return [];
+  const bits=[base,...base.split(/\s*\/\s*|\s+or\s+|\s*;\s*/g)];
+  return [...new Set(bits.map(x=>normalizeTutorText(x).replace(/^(?:a|an|the|to)\s+/,'')).filter(Boolean))];
+}
+function buildTutorLibrary(){
+  const map=new Map();
+  const add=w=>{
+    if(!w?.romaji||!w?.en)return;
+    const romaji=String(w.romaji).trim(),en=String(w.en).trim(),native=String(w.native||'').trim();
+    const key=normalizeTutorText(romaji);
+    const item={en,romaji,native,meaning:String(w.meaning||en),cat:w.cat||'course',example:String(w.example||`${romaji} — ${en}`)};
+    if(!map.has(key))map.set(key,item);
+  };
+  tutorWords.forEach(add);
+  [
+    {en:'who',romaji:'dare',native:'誰',meaning:'who',cat:'everyday',example:'Dare desu ka? — Who is it?'},
+    {en:'what',romaji:'nani',native:'何',meaning:'what',cat:'everyday',example:'Nani desu ka? — What is it?'},
+    {en:'where',romaji:'doko',native:'どこ',meaning:'where',cat:'travel',example:'Doko desu ka? — Where is it?'},
+    {en:'when',romaji:'itsu',native:'いつ',meaning:'when',cat:'everyday',example:'Itsu desu ka? — When is it?'},
+    {en:'why',romaji:'nande',native:'なんで',meaning:'why',cat:'everyday',example:'Nande? — Why?'},
+    {en:'how',romaji:'dou',native:'どう',meaning:'how',cat:'everyday',example:'Dou desu ka? — How is it?'},
+    {en:'which',romaji:'dore',native:'どれ',meaning:'which one',cat:'everyday',example:'Dore desu ka? — Which one is it?'}
+  ].forEach(add);
+  try{allSearchPacks().forEach(pack=>(pack.words||[]).forEach(w=>add({en:w.en,romaji:w.r,native:w.speech,meaning:w.en,cat:pack.id,example:`${w.r} — ${w.en}`})))}catch(e){}
+  try{lessons.forEach(l=>{
+    (l.words||[]).forEach(w=>add({en:w[1],romaji:w[0],native:w[2],meaning:w[1],cat:l.level,example:`${l.phrase} — ${l.en}`}));
+    add({en:l.en,romaji:l.phrase,native:l.speech,meaning:l.en,cat:l.level,example:`${l.phrase} — ${l.en}`});
+  })}catch(e){}
+  return [...map.values()];
+}
+const tutorLibrary=buildTutorLibrary();
 function findTutorWordByEnglish(term){
-  const q=normalizeTutorText(term).replace(/^(a|an|the|to)\s+/,'');
-  return tutorWords.find(w=>q===w.en || q.includes(w.en) || w.en.includes(q));
+  const q=normalizeTutorText(term).replace(/^(?:a|an|the|to)\s+/,'');
+  if(!q)return null;
+  return tutorLibrary.find(w=>tutorEnglishAliases(w.en).includes(q)||tutorEnglishAliases(w.meaning).includes(q))||null;
 }
 function findTutorWordByRomaji(term){
   const q=normalizeTutorText(term);
-  return tutorWords.find(w=>q===w.romaji || q.includes(w.romaji));
+  if(!q)return null;
+  return tutorLibrary.find(w=>normalizeTutorText(w.romaji)===q)||null;
+}
+function findTutorWordByNative(term){
+  const q=String(term||'').trim();if(!q)return null;
+  return tutorLibrary.find(w=>w.native&&String(w.native).trim()===q)||null;
 }
 function tutorWordReply(w){
   trackWords([w.romaji]);
   return {from:'them',lang:'JP',text:`${w.romaji} — ${w.meaning}`,translation:w.example,time:chatTime()};
 }
-
+function tutorLookupIntent(text){
+  const raw=String(text||'').trim();const q=normalizeTutorText(raw);if(!q)return {term:'',direction:'auto'};
+  const rules=[
+    [/^(?:how do i say|how do you say|how to say)\s+(.+?)(?:\s+in japanese)?$/,'en-jp'],
+    [/^(?:what is|what s|whats)\s+(?:the\s+)?(?:japanese(?:\s+word)?\s+for\s+)?(.+?)(?:\s+in japanese)?$/,'en-jp'],
+    [/^japanese(?:\s+word)?\s+for\s+(.+)$/,'en-jp'],
+    [/^(.+?)\s+in japanese$/,'en-jp'],
+    [/^what does\s+(.+?)\s+mean(?:\s+in english)?$/,'jp-en'],
+    [/^(?:meaning of|what is the meaning of)\s+(.+)$/,'auto'],
+    [/^(.+?)\s+(?:meaning|means what)$/,'auto'],
+    [/^(.+?)\s+in english$/,'jp-en'],
+    [/^english(?:\s+meaning)?\s+for\s+(.+)$/,'jp-en'],
+    [/^translate\s+(.+?)\s+(?:to|into)\s+japanese$/,'en-jp'],
+    [/^translate\s+(.+?)\s+(?:to|into)\s+english$/,'jp-en']
+  ];
+  for(const [re,direction] of rules){const m=q.match(re);if(m)return {term:m[1].trim(),direction}}
+  return {term:raw,direction:'auto'};
+}
+function tutorLocalLookup(text){
+  const intent=tutorLookupIntent(text);if(!intent.term)return null;
+  if(intent.direction==='en-jp')return findTutorWordByEnglish(intent.term);
+  if(intent.direction==='jp-en')return findTutorWordByRomaji(intent.term)||findTutorWordByNative(intent.term);
+  return findTutorWordByEnglish(intent.term)||findTutorWordByRomaji(intent.term)||findTutorWordByNative(intent.term);
+}
+async function tutorLiveAIReply(text){
+  const connected=await tryAutoConnectAI();
+  if(!connected)return {from:'them',lang:'EN',text:'I can look up hundreds of course words offline, but Live AI is not connected right now for words outside that library. Once Live AI is connected, just type any English word or Japanese word and I’ll translate it.',time:chatTime()};
+  const instructions=`You are Manabu Tutor, a reliable Japanese↔English dictionary and beginner-friendly language teacher. The learner prefers Japanese written in ROMAJI. NEVER output kana or kanji in your answer, even if the learner types Japanese script. The learner may type only one word (for example "who" or "dare"), a short phrase, Japanese script, or a normal question; they should never need to write "what does ___ mean". Detect the translation direction automatically. If English, give the most natural Japanese equivalent in romaji. If Japanese (romaji or native script), give the English meaning and the romaji reading. If there are multiple common translations, give the main one first and briefly explain when alternatives are used. For phrases, translate the whole phrase. Do not substitute a related question word: "who" is "dare", not "nani". Be concise and accurate. Format the first line as "ROMAJI — English meaning". Then give one short example in romaji followed by its English translation. No markdown table.`;
+  try{
+    const out=await callManabuAI(instructions,String(text||'').trim());
+    return {from:'them',lang:'JP',text:out,time:chatTime()};
+  }catch(e){
+    return {from:'them',lang:'EN',text:'I couldn’t reach Live AI for that lookup just now. Try again in a moment. You can still type a word by itself — English or Japanese.',time:chatTime()};
+  }
+}
 function categoryLabel(cat){return ({food:'food',travel:'travel',greetings:'greeting',everyday:'everyday',feelings:'feelings',sport:'football / sport'})[cat]||cat}
 function tutorReplyFor(text){
   const raw=String(text||'').trim();
   const q=normalizeTutorText(raw);
   let m;
-  if(!q) return {from:'them',lang:'EN',text:'Ask me any Japanese word or phrase you want to learn.',time:chatTime()};
+  if(!q) return {from:'them',lang:'EN',text:'Just type any English word or Japanese word. I’ll work out which way to translate it.',time:chatTime()};
 
-  // English → Japanese: “how do I say hungry?” / “hungry in Japanese”
-  m=q.match(/(?:how do i say|how to say|what is|what's)\s+(.+?)(?:\s+in japanese)?$/) || q.match(/^(.+?)\s+in japanese$/);
-  if(m){
-    const w=findTutorWordByEnglish(m[1]);
-    if(w) return tutorWordReply(w);
-  }
-
-  // Japanese → English: “what does daijoubu mean?”
-  m=q.match(/what does\s+(.+?)\s+mean$/) || q.match(/meaning of\s+(.+)$/);
-  if(m){
-    const w=findTutorWordByRomaji(m[1]);
-    if(w) return tutorWordReply(w);
-  }
-
-  // “Improve my sentence: ...” gives a lightweight three-stage correction.
+  // Sentence correction commands get priority over dictionary lookup.
   m=q.match(/^(?:improve my sentence|improve|fix my japanese|correct this)\s*[:\-]?\s*(.+)$/);
   if(m){
     const source=raw.replace(/^(?:improve my sentence|improve|fix my japanese|correct this)\s*[:\-]?\s*/i,'').trim();
-    const step={keywords:tutorWords.map(w=>w.romaji).filter(w=>normalizeRomajiText(source).includes(normalizeRomajiText(w))).slice(0,6),natural:''};
+    const step={keywords:tutorLibrary.map(w=>w.romaji).filter(w=>normalizeRomajiText(source).includes(normalizeRomajiText(w))).slice(0,6),natural:''};
     const candidates=[...lessons.map(l=>l.phrase),...allSearchPacks().flatMap(p=>p.phrases.map(ph=>ph.r))];
     const scored=candidates.map(x=>({x,score:similarity(normalizeRomajiText(source),normalizeRomajiText(x))})).sort((a,b)=>b.score-a.score);
     step.natural=scored[0]&&scored[0].score>.35?scored[0].x:source;
@@ -1770,62 +1994,61 @@ function tutorReplyFor(text){
     return {from:'them',lang:'JP',text:`What you said: ${f.said}\nCleaner version: ${f.corrected}\nNatural variation: ${f.natural}`,translation:f.note,time:chatTime()};
   }
 
-  // Topic packs such as “teach me colours” or “give me clothing words”.
   const requestedPack=allSearchPacks().find(pack=>{
     const terms=[pack.name,...(pack.keywords||[])].map(normalizeTutorText);
-    return terms.some(term=>term && (q===term || q.includes(term)));
+    return terms.some(term=>term&&(q===term||q.includes(term)));
   });
-  if(requestedPack && /(teach|learn|words|phrases|vocab|vocabulary|give me|show me)/.test(q)){
-    const picked=requestedPack.words.slice(0,6); trackWords(picked.map(w=>w.r));
+  if(requestedPack&&/(teach|learn|words|phrases|vocab|vocabulary|give me|show me)/.test(q)){
+    const picked=requestedPack.words.slice(0,6);trackWords(picked.map(w=>w.r));
     const phraseLines=requestedPack.phrases.slice(0,3).map(p=>`${p.r} = ${p.en}`);
     return {from:'them',lang:'JP',text:`${requestedPack.icon} ${requestedPack.name}\n${picked.map(w=>`${w.r} = ${w.en}`).join('\n')}\n\nUseful phrases:\n${phraseLines.join('\n')}`,translation:`You can also open Search → ${requestedPack.name} for audio, saving and the full pack.`,time:chatTime()};
   }
 
-  // Teach N words, optionally by category.
   m=q.match(/(?:teach me|give me|show me)\s+(\d+)?\s*(food|travel|greeting|greetings|everyday|feeling|feelings|football|sport)?\s*words?/);
   if(m){
     const n=Math.max(1,Math.min(8,Number(m[1]||5)));
     let cat=(m[2]||'').replace('greeting','greetings').replace('feeling','feelings').replace('football','sport');
     const map={greetings:'greetings',feelings:'feelings',sport:'sport',food:'food',travel:'travel',everyday:'everyday'};
-    let list=cat?tutorWords.filter(w=>w.cat===map[cat]):tutorWords;
-    if(list.length<n) list=tutorWords;
-    const start=(raw.length+chats[tutor.id].length)%Math.max(1,list.length);
-    const picked=[];
-    for(let i=0;i<list.length && picked.length<n;i++){
-      const w=list[(start+i)%list.length]; if(!picked.some(x=>x.romaji===w.romaji)) picked.push(w);
-    }
-    const lines=picked.map(w=>`${w.romaji} = ${w.meaning}`).join('\n');
-    return {from:'them',lang:'JP',text:`Here are ${picked.length} ${cat?categoryLabel(map[cat])+' ':''}words:\n${lines}`,translation:'Pick one and ask me “give me an example with ___” if you want to practise it.',time:chatTime()};
+    let list=cat?tutorLibrary.filter(w=>w.cat===map[cat]):tutorLibrary;
+    if(list.length<n)list=tutorLibrary;
+    const start=(raw.length+(chats[tutor.id]?.length||0))%Math.max(1,list.length),picked=[];
+    for(let i=0;i<list.length&&picked.length<n;i++){const w=list[(start+i)%list.length];if(!picked.some(x=>x.romaji===w.romaji))picked.push(w)}
+    return {from:'them',lang:'JP',text:`Here are ${picked.length} ${cat?categoryLabel(map[cat])+' ':''}words:\n${picked.map(w=>`${w.romaji} = ${w.meaning}`).join('\n')}`,translation:'Pick one and type it by itself, or ask for an example.',time:chatTime()};
   }
 
-  // Example sentence request.
-  m=q.match(/(?:example|sentence)(?:\s+with|\s+for)?\s+(.+)$/) || q.match(/give me an example with\s+(.+)$/);
+  m=q.match(/(?:example|sentence)(?:\s+with|\s+for)?\s+(.+)$/)||q.match(/give me an example with\s+(.+)$/);
   if(m){
-    const w=findTutorWordByEnglish(m[1])||findTutorWordByRomaji(m[1]);
-    if(w) return {from:'them',lang:'JP',text:w.example.split(' — ')[0],translation:w.example.includes(' — ')?w.example.split(' — ').slice(1).join(' — '):w.meaning,time:chatTime()};
+    const w=findTutorWordByEnglish(m[1])||findTutorWordByRomaji(m[1])||findTutorWordByNative(m[1]);
+    if(w)return {from:'them',lang:'JP',text:w.example.split(' — ')[0],translation:w.example.includes(' — ')?w.example.split(' — ').slice(1).join(' — '):w.meaning,time:chatTime()};
+    return null;
   }
-
-  // Direct lookup if user simply types a known English or romaji word.
-  const direct=findTutorWordByEnglish(q)||findTutorWordByRomaji(q);
-  if(direct) return tutorWordReply(direct);
 
   if(q.includes('quiz me')||q.includes('test me')){
-    const pool=tutorWords.filter(w=>['greetings','travel','everyday'].includes(w.cat));
-    const w=pool[(chats[tutor.id].length+raw.length)%pool.length];
-    return {from:'them',lang:'EN',text:`Quick memory check: what does “${w.romaji}” mean? Type your answer, then ask me “what does ${w.romaji} mean?” to check it.`,time:chatTime()};
+    const pool=tutorLibrary.filter(w=>['greetings','travel','everyday'].includes(w.cat));
+    const source=pool.length?pool:tutorLibrary;const w=source[((chats[tutor.id]?.length||0)+raw.length)%source.length];
+    return {from:'them',lang:'EN',text:`Quick memory check: what does “${w.romaji}” mean? You can type your answer, then type “${w.romaji}” by itself to check.`,time:chatTime()};
   }
   if(q.includes('help')||q==='what can you do'){
-    return {from:'them',lang:'EN',text:'You can ask me: “How do I say thirsty?”, “What does sumimasen mean?”, “Teach me 5 travel words”, or “Give me an example with oishii.”',time:chatTime()};
+    return {from:'them',lang:'EN',text:'Just type a word — English or Japanese. For example: “who”, “dare”, “train station”, or “daijoubu”. I automatically work out the translation direction. You can also ask for examples, vocab sets, or sentence corrections.',time:chatTime()};
   }
-  return {from:'them',lang:'EN',text:'I don’t have that one in my prototype vocabulary yet. Try asking for a common beginner word, or ask me for food, travel, greeting, feeling, everyday, or football words.',time:chatTime()};
+
+  // Exact course-library lookup. This fixes the old substring bug where the word
+  // “what” in “what is who in Japanese?” could incorrectly return nani.
+  const direct=tutorLocalLookup(raw);
+  if(direct)return tutorWordReply(direct);
+
+  // Anything outside the full course library falls through to Live AI.
+  return null;
 }
 function tutorReply(text){
   if(activeFriendId!==tutor.id)return;
-  const typing=document.getElementById('botTyping'); if(typing)typing.style.display='block';
-  window.setTimeout(()=>{
+  const typing=document.getElementById('botTyping');if(typing)typing.style.display='block';
+  window.setTimeout(async()=>{
+    let reply=tutorReplyFor(text);
+    if(!reply)reply=await tutorLiveAIReply(text);
     chats[tutor.id]=chats[tutor.id]||[];
-    chats[tutor.id].push(tutorReplyFor(text));persistChats();renderChat(tutor.id);scrollChatBottom();
-  },420);
+    chats[tutor.id].push(reply);persistChats();renderChat(tutor.id);scrollChatBottom();
+  },260);
 }
 function renderFriendsPage(){
   const box=document.getElementById('friendsContent');
@@ -1835,7 +2058,7 @@ function renderFriendsPage(){
   box.innerHTML=`
     <div class="friend-tools"><input class="friend-search" id="friendSearch" placeholder="Search @username or name" aria-label="Search people"><button class="friend-add-btn" id="friendSearchBtn">Find</button></div>
     <div id="friendSearchResults"></div>
-    <div class="tutor-card"><div class="tutor-avatar">🤖</div><div class="tutor-info"><div class="tutor-name">Manabu Tutor <span class="tutor-badge">● ONLINE</span></div><div class="tutor-desc">Ask for words, meanings, examples, or a mini vocab set. Always romaji-first.</div></div><button class="tutor-open" id="openTutor">Ask</button></div>
+    <div class="tutor-card"><div class="tutor-avatar">🤖</div><div class="tutor-info"><div class="tutor-name">Manabu Tutor <span class="tutor-badge">● ONLINE</span></div><div class="tutor-desc">Type any English word or Japanese word and I’ll tell you what it means. No special question format needed.</div></div><button class="tutor-open" id="openTutor">Ask</button></div>
     <div class="lab-card"><div class="lab-icon">🎭</div><div class="lab-copy"><div class="lab-title">Roleplay Coach</div><div class="lab-sub">React in your own words at a café, hotel, market or dinner. Manabu adapts the next prompt and can improve your sentence.</div></div><button class="lab-open" id="openRoleplay">Start</button></div>
     <div class="lab-card ai-live-card"><div class="lab-icon">✨</div><div class="lab-copy"><div class="lab-title">Conversation Coach</div><div class="lab-sub">Practise a real conversation by voice or text. Manabu automatically uses Live AI when available and the built-in coach when it is not.</div><div class="ai-state ${manabuAIReady()?'on':''}">${manabuAIReady()?'● Live AI ready':'● Always available'}</div></div><button class="lab-open" id="openAIConversation">Start</button></div>
     <div class="friend-section"><div class="friend-section-head"><div class="friend-section-title">Your friends</div><div class="friend-count">${myFriends.length} connected</div></div>
@@ -2031,12 +2254,12 @@ function renderChat(id){
   const list=chats[id]||[];
   const isTutor=id===tutor.id;
   const jpPhrases=isTutor?[]:['Konnichiwa!','Genki desu ka?','Arigatou!','Daijoubu?','Mata ne!','Issho ni renshuu shiyou!'];
-  const tutorPrompts=['How do I say hungry?','What does daijoubu mean?','Improve my sentence: koohi kudasai','Teach me 5 food words','Example with oishii'];
+  const tutorPrompts=['who','dare','train station','daijoubu','Teach me 5 food words','Improve: koohi kudasai'];
   box.innerHTML=`<div class="chat-shell">
     <div class="chat-top"><button class="chat-back" id="chatBack">‹</button><div class="chat-person"><div class="friend-avatar">${f.avatar}</div><div><div class="chat-title">${escapeHtml(f.name)} ${isTutor?'<span class="tutor-badge">TUTOR</span>':''}</div><div class="chat-status">${isTutor?'● Ready to help':'● '+(f.online?'Online now':'Offline')} · ${escapeHtml(f.handle)}</div></div></div>${isTutor?'':`<div class="language-toggle"><button class="lang-btn ${chatLanguage==='EN'?'active':''}" data-chat-lang="EN">English</button><button class="lang-btn ${chatLanguage==='JP'?'active':''}" data-chat-lang="JP">Japanese</button></div><div class="friend-menu-wrap"><button class="friend-menu-btn" id="friendMenuBtn" aria-label="Friend options">•••</button><div class="friend-menu" id="friendMenu"><button class="friend-menu-item danger" id="unfriendBtn">Unfriend</button><button class="friend-menu-item danger" id="blockFriendBtn">Block</button><button class="friend-menu-item muted" id="reportFriendBtn">Report</button></div></div>`}</div>
-    ${isTutor?'<div class="tutor-intro"><span class="tutor-label">ROMAJI-FIRST TUTOR</span><br>Ask in normal English or type a Japanese word in romaji. I’ll explain it without kanji or kana.</div>':''}
+    ${isTutor?'<div class="tutor-intro"><span class="tutor-label">ROMAJI-FIRST TUTOR</span><br><strong>Just type the word.</strong> English → Japanese or Japanese → English. You do not need to write “what does ___ mean?” or “___ in Japanese”. I’ll work out the direction automatically.</div>':''}
     <div class="chat-messages" id="chatMessages">${list.length?list.map(messageHtml).join(''):'<div class="empty-friends">No messages yet.</div>'}<div class="bot-typing" id="botTyping" style="display:none">Manabu Tutor is thinking…</div></div>
-    <div class="chat-compose">${isTutor?`<div class="tutor-suggestions">${tutorPrompts.map(p=>`<button class="tutor-suggestion" data-tutor-prompt="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}</div>`:(chatLanguage==='JP'?`<div class="quick-phrases">${jpPhrases.map(p=>`<button class="quick-phrase" data-quick="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}</div>`:'')}<div class="compose-row"><textarea class="chat-input" id="chatInput" rows="1" placeholder="${isTutor?'Ask me a Japanese word or phrase…':chatLanguage==='JP'?'Write Japanese in romaji…':'Write a message in English…'}"></textarea><button class="chat-send" id="chatSend">↑</button></div><div class="chat-note">${isTutor?'Prototype tutor: built-in beginner vocabulary and phrase help, stored only in this browser.':'Japanese chat stays romaji-first — no kanji or kana required. Messages in this prototype are stored only in this browser.'}</div></div>
+    <div class="chat-compose">${isTutor?`<div class="tutor-suggestions">${tutorPrompts.map(p=>`<button class="tutor-suggestion" data-tutor-prompt="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}</div>`:(chatLanguage==='JP'?`<div class="quick-phrases">${jpPhrases.map(p=>`<button class="quick-phrase" data-quick="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}</div>`:'')}<div class="compose-row"><textarea class="chat-input" id="chatInput" rows="1" placeholder="${isTutor?'Type any English or Japanese word…':chatLanguage==='JP'?'Write Japanese in romaji…':'Write a message in English…'}"></textarea><button class="chat-send" id="chatSend">↑</button></div><div class="chat-note">${isTutor?'Just type a word or phrase. Manabu checks the full course library first and automatically uses Live AI for anything else.':'Japanese chat stays romaji-first — no kanji or kana required. Messages in this prototype are stored only in this browser.'}</div></div>
     </div>`;
   box.querySelector('#chatBack').addEventListener('click',closeChat);
   if(!isTutor){
@@ -2101,7 +2324,7 @@ function packCardHtml(s){
 }
 function smartGenerateHtml(q){
   if(!q)return '';
-  return `<div class="smart-generate"><div class="smart-generate-top"><div class="smart-generate-icon">✦</div><div><div class="smart-generate-title">Ask Manabu about “${escapeHtml(q)}”</div><div class="smart-generate-copy">Can’t see exactly what you need? Send this search to Manabu Tutor. The prototype uses its built-in language library; a future connected AI version can generate completely new packs.</div></div></div><button class="smart-generate-btn" data-smart-generate="${escapeHtml(q)}">Ask Tutor to build this →</button></div>`;
+  return `<div class="smart-generate"><div class="smart-generate-top"><div class="smart-generate-icon">✦</div><div><div class="smart-generate-title">Ask Manabu about “${escapeHtml(q)}”</div><div class="smart-generate-copy">Can’t see exactly what you need? Send this search to Manabu Tutor. Manabu checks its full course library first and can use Live AI for words or phrases that are not already in the course.</div></div></div><button class="smart-generate-btn" data-smart-generate="${escapeHtml(q)}">Ask Tutor to build this →</button></div>`;
 }
 function situationCardsHtml(q=''){
   const packs=allSearchPacks();
@@ -2295,6 +2518,7 @@ function renderSituationDetail(id){
   document.getElementById('searchPage')?.scrollTo({top:0,behavior:'smooth'});
 }
 function showSearch(){
+  persistFeedPosition();
   closeSheet(); hideAppPages(); feed.style.display='none'; activeSituationId=null;
   document.getElementById('searchPage').classList.add('active');
   document.getElementById('mainHeader').classList.remove('me-mode');
@@ -2436,12 +2660,14 @@ function hideAppPages(){
   document.getElementById('searchPage').classList.remove('active');
 }
 function showProfile(){
+  persistFeedPosition();
   closeSheet();hideAppPages();feed.style.display='none';
   document.getElementById('mePage').classList.add('active');
   document.getElementById('mainHeader').classList.add('me-mode');
   renderMePage();
 }
 function showFriends(){
+  persistFeedPosition();
   closeSheet();hideAppPages();feed.style.display='none';
   activeFriendId=null;
   document.getElementById('friendsPage').classList.add('active');
@@ -2455,18 +2681,28 @@ function showLearn(){
 }
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+ persistFeedPosition();
  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
  if(t.dataset.filter==='search'){showSearch();return;}
- showLearn();renderFeed(t.dataset.filter);feed.scrollTop=0;
+ showLearn();
+ const nextFilter=t.dataset.filter;
+ if(nextFilter!==currentFeedFilter||!feed.children.length)renderFeed(nextFilter,{restore:true});
+ else restoreFeedPosition(currentFeedFilter);
  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page==='home'));
 }));
 
 document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{
+ if(b.dataset.page!=='home')persistFeedPosition();
  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
  if(b.dataset.page==='progress'){showLearn();showProgress();}
  if(b.dataset.page==='friends')showFriends();
  if(b.dataset.page==='profile')showProfile();
- if(b.dataset.page==='home'){showLearn();document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));renderFeed('all');feed.scrollTop=0;}
+ if(b.dataset.page==='home'){
+   showLearn();
+   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.filter===currentFeedFilter));
+   if(!feed.children.length)renderFeed(currentFeedFilter,{restore:true});
+   else restoreFeedPosition(currentFeedFilter);
+ }
 }));
 
 document.querySelectorAll('.goal').forEach(g=>{
@@ -2515,7 +2751,8 @@ document.getElementById('startBtn').addEventListener('click',()=>{
 if(localStorage.getItem('moshiOnboarded')==='1')document.getElementById('onboarding').classList.add('hidden');
 
 updateStreakUi();
-renderFeed();
+document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.filter===currentFeedFilter));
+renderFeed(currentFeedFilter,{restore:true});
 
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(e=>addDiagnostic('service-worker',e.message,'registration')))}
 window.addEventListener('online',()=>flash('Back online'));window.addEventListener('offline',()=>flash('Offline mode · saved learning still works'));
