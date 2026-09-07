@@ -277,9 +277,9 @@
     .lesson.phrase-long .float-jp{display:block;top:31%;font-size:clamp(28px,7.2vw,42px);max-width:68%;white-space:normal;line-height:1.05;word-spacing:.14em;opacity:.58}
     .lesson.phrase-xl .float-jp{display:block;top:30%;font-size:clamp(24px,6.4vw,36px);max-width:66%;white-space:normal;line-height:1.05;word-spacing:.12em;opacity:.50}
     .lesson.phrase-xxl .float-jp{display:block;top:29%;font-size:clamp(21px,5.7vw,32px);max-width:64%;white-space:normal;line-height:1.05;word-spacing:.10em;opacity:.44}
-    .lesson.phrase-long .lesson-ui{bottom:2.5%}
-    .lesson.phrase-xl .lesson-ui{bottom:4%}
-    .lesson.phrase-xxl .lesson-ui{bottom:5%}
+    .lesson.phrase-long .lesson-ui{bottom:4.5%}
+    .lesson.phrase-xl .lesson-ui{bottom:6%}
+    .lesson.phrase-xxl .lesson-ui{bottom:7%}
     .lesson.phrase-xl .tokens,.lesson.phrase-xxl .tokens{gap:5px;margin-bottom:8px}
     .lesson.phrase-xl .token,.lesson.phrase-xxl .token{padding:6px 8px;font-size:11px}
     .actions{gap:13px}
@@ -1580,16 +1580,16 @@ function renderFeed(filter='all',options={}){
     const phraseClass=(phraseLength>100||phraseWords>14)?' phrase-xxl':(phraseLength>78||phraseWords>11)?' phrase-xl':(phraseLength>54||phraseWords>8)?' phrase-long':'';
     const decorativeText=phraseClass?floatText.split(/\s+/).slice(0,3).join(' '):floatText;
     const showFloat=!!decorativeText;
-    return `<article class="lesson${phraseClass}" data-id="${l.id}">
+    return `<article class="lesson${phraseClass?` ${phraseClass}`:''}" data-id="${l.id}">
       <div class="scene"><div class="scene-art">${sceneSvg(l.scene)}</div></div>
       <div class="badge">${l.tag}</div>
       ${showFloat?`<div class="float-jp${floatClass}">${escapeHtml(decorativeText)}</div>`:''}
       ${i===0?'<div class="swipe-hint">SWIPE<br/>↑</div>':''}
       <div class="lesson-ui">
         <div class="context"><span class="context-dot"></span> Listen · speak · remember</div>
-        <h2 class="jp-line">${l.phrase}</h2>
+        <h2 class="jp-line ${phraseClass?phraseClass.replace('phrase-','jp-'):''}">${l.phrase}</h2>
         <div class="translation hidden" data-translation="${l.id}" aria-hidden="true">${l.en}</div>
-        <div class="tokens" aria-label="Tap words to reveal their meanings">${l.words.map(([word,en])=>`<button class="token" data-meaning="${escapeHtml(en)}" data-jp="${escapeHtml(word)}" data-open="false">${escapeHtml(word)}</button>`).join('')}</div>
+        <div class="tokens ${phraseClass===' phrase-xxl'||phraseClass==='phrase-xxl'?'tokens-tight':(phraseClass===' phrase-xl'||phraseClass==='phrase-xl'||phraseClass===' phrase-long'||phraseClass==='phrase-long'?'tokens-compact':'')}" aria-label="Tap words to reveal their meanings">${l.words.map(([word,en])=>`<button class="token" data-meaning="${escapeHtml(en)}" data-jp="${escapeHtml(word)}" data-open="false">${escapeHtml(word)}</button>`).join('')}</div>
       </div>
       <aside class="actions" aria-label="Lesson actions">
         <div class="action"><button class="action-btn speak" data-id="${l.id}" aria-label="Play audio">🔊</button><span>Listen</span></div>
