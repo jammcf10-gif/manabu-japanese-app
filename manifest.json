@@ -1,0 +1,19 @@
+{
+  "name": "Manabu — Learn Japanese by Scrolling",
+  "short_name": "Manabu",
+  "description": "A speaking-first Japanese learning app with adaptive lessons, pronunciation, roleplay, spaced review and practical search.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08080c",
+  "theme_color": "#0b0b10",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
