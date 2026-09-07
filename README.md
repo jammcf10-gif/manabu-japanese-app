@@ -1,3 +1,5 @@
+Manabu v0.11.14
+
 # Manabu v0.11.10 beta
 
 ## v0.11.10 Search access update

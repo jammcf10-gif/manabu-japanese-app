@@ -1,4 +1,4 @@
-const CACHE='manabu-core-v20';
+const CACHE='manabu-core-v21';
 const CORE=['/','/index.html','/manifest.json','/icon.svg'];
 
 self.addEventListener('install',event=>{
