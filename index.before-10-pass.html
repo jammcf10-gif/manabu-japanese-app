@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b10" />
+  <title>Manabu — Learn Japanese by Scrolling</title>
+  <style>
+    :root{
+      --bg:#08080c;
+      --panel:#111118;
+      --panel-2:#181822;
+      --text:#f8f8fb;
+      --muted:#b8b8c8;
+      --accent:#ff4f86;
+      --accent-2:#7c5cff;
+      --good:#6be5a8;
+      --line:rgba(255,255,255,.10);
+      --shadow:0 30px 80px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:radial-gradient(circle at 10% 10%,#1b132a 0,#08080c 42%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;height:100%;overflow:hidden}
+    button{font:inherit}
+    .app-shell{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;background:
+      radial-gradient(circle at 85% 20%,rgba(124,92,255,.15),transparent 35%),
+      radial-gradient(circle at 20% 80%,rgba(255,79,134,.10),transparent 35%)}
+    .phone{position:relative;width:min(100vw,470px);height:100dvh;max-height:980px;background:#0b0b10;overflow:hidden;box-shadow:var(--shadow)}
+    @media (min-width:700px){
+      .phone{height:min(92dvh,930px);border:1px solid rgba(255,255,255,.14);border-radius:30px}
+      .phone:before{content:"";position:absolute;z-index:30;left:50%;top:9px;transform:translateX(-50%);width:110px;height:28px;border-radius:30px;background:#050507;pointer-events:none}
+    }
+    .header{position:absolute;z-index:20;inset:0 0 auto 0;padding:max(18px,env(safe-area-inset-top)) 16px 10px;background:linear-gradient(to bottom,rgba(5,5,10,.8),transparent);pointer-events:none}
+    .header-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;align-items:center;gap:9px;font-weight:900;letter-spacing:-.04em;font-size:20px}
+    .brand-mark{width:27px;height:27px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#ff9b61 46%,var(--accent-2));display:grid;place-items:center;box-shadow:0 8px 22px rgba(255,79,134,.35);font-size:14px}
+    .stats{display:flex;gap:8px}
+    .stat{display:flex;align-items:center;gap:5px;background:rgba(12,12,18,.62);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(12px);padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}
+    .tabs{margin-top:12px;display:flex;justify-content:center;gap:4px;pointer-events:auto}
+    .tab{border:0;color:#d7d7e4;background:transparent;padding:8px 10px;font-size:13px;font-weight:800;opacity:.68;cursor:pointer;border-radius:999px}
+    .tab.active{background:rgba(255,255,255,.11);opacity:1;color:#fff}
+
+    .feed{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior-y:contain}
+    .feed::-webkit-scrollbar{display:none}
+    .lesson{position:relative;height:100%;min-height:100%;scroll-snap-align:start;overflow:hidden;background:#15151f;isolation:isolate}
+    .scene{position:absolute;inset:0;overflow:hidden}
+    .scene:after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,12,.15) 0%,rgba(7,7,12,.05) 33%,rgba(7,7,12,.48) 67%,rgba(7,7,12,.96) 100%)}
+    .scene-art{position:absolute;inset:0;transform:scale(1.02)}
+    .scene-art svg{width:100%;height:100%;display:block}
+    .float-jp{position:absolute;top:23%;left:50%;transform:translateX(-50%);font-size:clamp(52px,13vw,78px);font-weight:950;letter-spacing:-.08em;text-shadow:0 8px 35px rgba(0,0,0,.38);z-index:1;white-space:nowrap;opacity:.96}
+    .badge{position:absolute;top:17%;left:18px;z-index:2;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.10em;background:rgba(5,5,9,.48);border:1px solid rgba(255,255,255,.14);padding:7px 9px;border-radius:999px;backdrop-filter:blur(12px)}
+    .lesson-ui{position:absolute;z-index:5;left:0;right:0;bottom:0;padding:0 72px calc(88px + env(safe-area-inset-bottom)) 18px}
+    .context{font-size:12px;color:#ddddef;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+    .context-dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 12px var(--good)}
+    .jp-line{font-size:30px;line-height:1.18;font-weight:950;letter-spacing:-.04em;margin:0 0 5px}
+    .romaji{font-size:14px;color:#d6d6e2;margin-bottom:8px;font-weight:700}
+    .translation{font-size:16px;line-height:1.45;color:#fff;font-weight:700;margin-bottom:14px;min-height:24px;transition:.2s}
+    .translation.hidden{filter:blur(9px);user-select:none;opacity:.55}
+    .tokens{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+    .token{border:1px solid rgba(255,255,255,.14);background:rgba(10,10,16,.42);color:white;border-radius:999px;padding:7px 9px;font-size:12px;font-weight:800;cursor:pointer;backdrop-filter:blur(10px)}
+    .token[data-open="true"]{background:#fff;color:#111;border-color:#fff}
+    .explain{font-size:12px;color:#c6c6d7;line-height:1.45;max-width:330px}
+    .actions{position:absolute;right:12px;bottom:calc(93px + env(safe-area-inset-bottom));z-index:7;display:flex;flex-direction:column;gap:15px;align-items:center}
+    .action{display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;font-size:10px;font-weight:800}
+    .action-btn{width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.13);background:rgba(7,7,12,.44);color:#fff;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(15px);font-size:19px;transition:.18s transform,.18s background}
+    .action-btn:active{transform:scale(.92)}
+    .action-btn.saved{background:linear-gradient(135deg,var(--accent),#ff856b);border-color:transparent}
+    .quiz-btn{width:50px;height:50px;background:linear-gradient(135deg,var(--accent-2),#4ab8ff);border:0;box-shadow:0 12px 24px rgba(124,92,255,.25)}
+    .bottom-nav{position:absolute;z-index:24;left:0;right:0;bottom:0;height:calc(72px + env(safe-area-inset-bottom));padding:8px 14px env(safe-area-inset-bottom);display:flex;justify-content:space-around;align-items:center;background:linear-gradient(to top,rgba(8,8,12,.98) 60%,rgba(8,8,12,.65),transparent);border-top:1px solid rgba(255,255,255,.06)}
+    .nav-btn{border:0;background:none;color:#a6a6b5;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:800;cursor:pointer;min-width:48px}
+    .nav-btn .nav-icon{font-size:21px}
+    .nav-btn.active{color:#fff}
+
+    .toast{position:absolute;z-index:60;left:50%;bottom:95px;transform:translate(-50%,20px);background:#fff;color:#111;font-weight:900;font-size:12px;padding:10px 14px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+
+    .sheet{position:absolute;z-index:50;inset:0;background:rgba(3,3,7,.58);backdrop-filter:blur(8px);display:none;align-items:flex-end}
+    .sheet.open{display:flex}
+    .sheet-card{width:100%;max-height:82%;overflow:auto;background:#12121a;border-radius:26px 26px 0 0;border:1px solid rgba(255,255,255,.10);padding:18px 18px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -30px 80px rgba(0,0,0,.35)}
+    .sheet-handle{width:44px;height:5px;border-radius:99px;background:#3b3b47;margin:0 auto 14px}
+    .sheet-title{font-size:22px;font-weight:950;letter-spacing:-.04em;margin-bottom:4px}
+    .sheet-sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+    .saved-list{display:grid;gap:10px}
+    .saved-item{padding:13px;border-radius:16px;background:#1a1a24;border:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .saved-jp{font-size:20px;font-weight:950}
+    .saved-en{font-size:12px;color:#c8c8d5;margin-top:3px}
+    .tiny-btn{border:0;background:#2a2a36;color:#fff;border-radius:10px;padding:8px 10px;font-weight:900;font-size:11px;cursor:pointer}
+
+    .quiz-card{padding:4px 0 2px}
+    .quiz-q{font-size:25px;font-weight:950;line-height:1.25;letter-spacing:-.03em;margin:6px 0 16px}
+    .choices{display:grid;gap:10px}
+    .choice{border:1px solid rgba(255,255,255,.10);background:#1d1d28;color:#fff;padding:14px;text-align:left;border-radius:15px;font-weight:850;cursor:pointer}
+    .choice.correct{border-color:rgba(107,229,168,.7);background:rgba(107,229,168,.13)}
+    .choice.wrong{border-color:rgba(255,79,134,.75);background:rgba(255,79,134,.13)}
+    .sheet-close{margin-top:14px;width:100%;border:0;border-radius:14px;padding:13px;background:#2a2a36;color:#fff;font-weight:900;cursor:pointer}
+
+    .progress-wrap{display:grid;gap:12px}
+    .progress-card{padding:16px;border-radius:17px;background:#1a1a24;border:1px solid rgba(255,255,255,.08)}
+    .progress-label{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:7px}
+    .progress-big{font-size:30px;font-weight:950;letter-spacing:-.05em}
+    .bar{height:9px;background:#2b2b36;border-radius:99px;overflow:hidden;margin-top:10px}
+    .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:99px}
+    .daily{display:flex;gap:7px;margin-top:12px}
+    .day{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:#262631;color:#888899;font-size:11px;font-weight:900}
+    .day.done{background:rgba(107,229,168,.16);color:#9af0c5;border:1px solid rgba(107,229,168,.25)}
+
+    .onboarding{position:absolute;z-index:80;inset:0;background:
+      radial-gradient(circle at 50% 25%,rgba(124,92,255,.38),transparent 28%),
+      linear-gradient(180deg,#0c0c14,#09090e);display:grid;place-items:center;padding:25px}
+    .onboarding.hidden{display:none}
+    .onboard-card{max-width:370px;text-align:center}
+    .onboard-mark{width:66px;height:66px;border-radius:22px;background:linear-gradient(135deg,var(--accent),#ff9864 45%,var(--accent-2));display:grid;place-items:center;margin:0 auto 16px;font-size:31px;box-shadow:0 18px 50px rgba(124,92,255,.25)}
+    .onboard-card h1{font-size:38px;line-height:1;letter-spacing:-.065em;margin:0 0 12px}
+    .onboard-card p{color:#c6c6d6;font-size:15px;line-height:1.55;margin:0 auto 20px;max-width:330px}
+    .goal-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:16px 0 20px}
+    .goal{border:1px solid rgba(255,255,255,.12);background:#171721;color:#ddddec;border-radius:999px;padding:9px 11px;font-size:12px;font-weight:850;cursor:pointer}
+    .goal.active{background:#fff;color:#111;border-color:#fff}
+    .start-btn{width:100%;border:0;border-radius:16px;padding:15px;background:linear-gradient(135deg,var(--accent),#ff806c 42%,var(--accent-2));color:white;font-weight:950;font-size:15px;cursor:pointer;box-shadow:0 14px 35px rgba(255,79,134,.18)}
+    .hint{margin-top:12px;color:#858598;font-size:11px}
+
+    .swipe-hint{position:absolute;z-index:4;top:43%;right:16px;color:rgba(255,255,255,.72);font-size:11px;font-weight:800;text-align:center;animation:bob 1.8s ease-in-out infinite;pointer-events:none}
+    @keyframes bob{50%{transform:translateY(-8px)}}
+
+    .app-page{position:absolute;inset:0;z-index:12;background:linear-gradient(180deg,#0c0c14,#09090e);overflow-y:auto;padding:calc(76px + env(safe-area-inset-top)) 18px calc(92px + env(safe-area-inset-bottom));display:none;scrollbar-width:none}
+    .app-page::-webkit-scrollbar{display:none}
+    .app-page.active{display:block}
+    .page-kicker{font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#aaaabd;margin-bottom:7px}
+    .page-title{font-size:32px;line-height:1;font-weight:950;letter-spacing:-.055em;margin:0 0 8px}
+    .page-sub{font-size:13px;line-height:1.5;color:var(--muted);margin-bottom:18px}
+    .profile-hero{display:flex;align-items:center;gap:15px;padding:18px;border-radius:22px;background:linear-gradient(145deg,#191924,#111119);border:1px solid rgba(255,255,255,.09);margin-bottom:14px}
+    .profile-avatar{width:76px;height:76px;flex:0 0 76px;border-radius:24px;display:grid;place-items:center;font-size:36px;font-weight:950;background:linear-gradient(135deg,var(--accent),#ff9b61 48%,var(--accent-2));box-shadow:0 15px 32px rgba(124,92,255,.20);border:1px solid rgba(255,255,255,.12)}
+    .profile-name{font-size:22px;font-weight:950;letter-spacing:-.04em}
+    .profile-level{font-size:12px;color:var(--muted);margin-top:3px;font-weight:750}
+    .wallet{margin-left:auto;text-align:right;white-space:nowrap}
+    .wallet-num{font-size:19px;font-weight:950}.wallet-label{font-size:10px;color:#aaaabd;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .level-card{padding:16px;border-radius:19px;background:linear-gradient(135deg,rgba(124,92,255,.13),rgba(255,79,134,.08));border:1px solid rgba(151,127,255,.22);margin-bottom:12px}
+    .level-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:9px}.level-name{font-size:18px;font-weight:950;letter-spacing:-.035em}.level-lifetime{font-size:11px;color:#c6c3dc;font-weight:850;white-space:nowrap}.level-bar{height:9px;border-radius:999px;overflow:hidden;background:#282835}.level-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent-2),#4ab8ff,var(--accent));transition:width .35s ease}.level-next{display:flex;justify-content:space-between;gap:10px;margin-top:7px;font-size:10px;color:#9e9eaf}.level-next strong{color:#d8d5ea}
+    .me-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+    .me-stat{padding:14px;border-radius:17px;background:#171721;border:1px solid rgba(255,255,255,.08)}
+    .me-stat-label{font-size:10px;color:#aaaabd;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+    .me-stat-big{font-size:21px;font-weight:950;letter-spacing:-.04em}
+    .section-row{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:21px 0 10px}
+    .section-title{font-size:20px;font-weight:950;letter-spacing:-.04em}.section-note{font-size:11px;color:#9999aa;text-align:right}
+    .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .shop-item{position:relative;padding:13px;border-radius:18px;background:#171721;border:1px solid rgba(255,255,255,.08);min-height:150px;display:flex;flex-direction:column;align-items:center;text-align:center}
+    .shop-item.equipped{border-color:rgba(107,229,168,.48);box-shadow:inset 0 0 0 1px rgba(107,229,168,.12)}
+    .shop-avatar{width:62px;height:62px;border-radius:20px;display:grid;place-items:center;background:#252533;font-size:31px;margin:3px auto 9px}
+    .shop-name{font-size:13px;font-weight:900}.shop-price{font-size:11px;color:#bdbdcb;margin:3px 0 10px}
+    .shop-btn{margin-top:auto;width:100%;border:0;border-radius:11px;padding:9px 8px;font-size:11px;font-weight:950;cursor:pointer;background:#2a2a37;color:#fff}
+    .shop-btn.buy{background:linear-gradient(135deg,var(--accent-2),#4ab8ff)}
+    .shop-btn.equip{background:#fff;color:#111}.shop-btn:disabled{opacity:.48;cursor:not-allowed}
+    .owned-pill{position:absolute;top:9px;right:9px;font-size:9px;font-weight:950;background:rgba(107,229,168,.14);color:#9af0c5;border:1px solid rgba(107,229,168,.22);padding:4px 6px;border-radius:999px}
+
+
+    .search-tab-page{padding-top:calc(122px + env(safe-area-inset-top))}
+    .me-saved-card{display:flex;align-items:center;gap:12px;width:100%;margin:14px 0 18px;padding:15px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:linear-gradient(145deg,#191923,#14141d);color:#fff;text-align:left;cursor:pointer}
+    .me-saved-icon{width:48px;height:48px;flex:0 0 48px;border-radius:15px;display:grid;place-items:center;background:rgba(255,79,134,.13);font-size:23px}
+    .me-saved-copy{min-width:0;flex:1}.me-saved-title{font-size:14px;font-weight:950}.me-saved-sub{font-size:10px;color:#aaaabc;margin-top:3px;line-height:1.4}.me-saved-arrow{font-size:20px;color:#8f8fa0}
+    .search-box{position:relative;margin:4px 0 12px}.search-input{width:100%;border:1px solid rgba(255,255,255,.11);background:#171721;color:#fff;border-radius:17px;padding:14px 44px 14px 43px;outline:none;font:inherit;font-size:14px;font-weight:750}.search-input:focus{border-color:rgba(124,92,255,.72);box-shadow:0 0 0 3px rgba(124,92,255,.10)}.search-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:17px;opacity:.72}.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:31px;height:31px;border:0;border-radius:10px;background:#252531;color:#bbbccd;cursor:pointer;font-weight:950;display:none}.search-clear.show{display:block}
+    .situation-chips{display:flex;gap:7px;overflow-x:auto;margin:0 -2px 16px;padding:2px 2px 4px;scrollbar-width:none}.situation-chips::-webkit-scrollbar{display:none}.situation-chip{flex:0 0 auto;border:1px solid rgba(255,255,255,.09);background:#171721;color:#d9d9e8;border-radius:999px;padding:8px 10px;font-size:10px;font-weight:900;cursor:pointer}.situation-chip:hover{background:#22222d}
+    .situation-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.situation-card{border:1px solid rgba(255,255,255,.08);background:linear-gradient(145deg,#191923,#14141d);color:#fff;border-radius:19px;padding:14px;text-align:left;cursor:pointer;min-height:145px;display:flex;flex-direction:column;transition:.16s transform,.16s border-color}.situation-card:active{transform:scale(.98)}.situation-card:hover{border-color:rgba(124,92,255,.34)}.situation-icon{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:#252532;font-size:23px;margin-bottom:12px}.situation-name{font-size:16px;font-weight:950;letter-spacing:-.035em}.situation-desc{font-size:10px;color:#a9a9ba;line-height:1.4;margin-top:4px}.situation-count{margin-top:auto;padding-top:9px;font-size:9px;color:#c8c4ef;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+    .search-section-title{font-size:15px;font-weight:950;margin:18px 0 9px}.quick-match-list{display:grid;gap:8px}.quick-match{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:15px;background:#171721;border:1px solid rgba(255,255,255,.07);cursor:pointer}.quick-match-main{min-width:0;flex:1}.quick-match-romaji{font-size:13px;font-weight:950}.quick-match-en{font-size:10px;color:#aaaabc;margin-top:3px}.quick-match-tag{font-size:9px;color:#bdb7f4;font-weight:900;background:rgba(124,92,255,.12);padding:5px 7px;border-radius:999px;white-space:nowrap}.search-empty{padding:24px 15px;text-align:center;border:1px dashed rgba(255,255,255,.11);border-radius:18px;color:#aaaabc;font-size:12px;line-height:1.55;background:#14141d}
+    .situation-top{display:flex;align-items:center;gap:11px;margin-bottom:15px}.situation-back{width:40px;height:40px;border:0;border-radius:13px;background:#1d1d28;color:#fff;font-size:18px;cursor:pointer}.situation-hero-icon{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(124,92,255,.26),rgba(255,79,134,.18));font-size:25px}.situation-hero-copy{min-width:0}.situation-hero-title{font-size:22px;font-weight:950;letter-spacing:-.04em}.situation-hero-sub{font-size:11px;color:#aaaabc;margin-top:3px}.phrase-section{margin-top:18px}.phrase-section-head{font-size:12px;font-weight:950;letter-spacing:.10em;text-transform:uppercase;color:#b7b3d7;margin-bottom:9px}.word-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.word-card{padding:12px;border-radius:15px;background:#171721;border:1px solid rgba(255,255,255,.07);position:relative}.word-romaji{font-size:14px;font-weight:950}.word-en{font-size:10px;color:#a9a9b9;margin-top:3px;padding-right:30px}.word-play{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:0;border-radius:10px;background:#252531;color:#fff;cursor:pointer;font-size:12px}
+    .phrase-list{display:grid;gap:9px}.phrase-card{padding:13px;border-radius:17px;background:#171721;border:1px solid rgba(255,255,255,.08)}.phrase-romaji{font-size:16px;line-height:1.35;font-weight:950;letter-spacing:-.02em}.phrase-en{font-size:11px;color:#b4b4c4;line-height:1.4;margin-top:5px}.phrase-actions{display:flex;gap:7px;margin-top:10px}.phrase-action{border:0;border-radius:10px;background:#272733;color:#fff;padding:8px 10px;font-size:10px;font-weight:900;cursor:pointer}.phrase-action.primary{background:linear-gradient(135deg,var(--accent-2),#4ab8ff)}.phrase-action.saved{background:rgba(255,79,134,.18);color:#ffc0d3;border:1px solid rgba(255,79,134,.22)}
+    .friend-tools{display:flex;gap:8px;margin-bottom:16px}.friend-search{flex:1;min-width:0;border:1px solid rgba(255,255,255,.1);background:#171721;color:#fff;border-radius:14px;padding:12px 13px;outline:none;font:inherit}.friend-search:focus{border-color:rgba(124,92,255,.72);box-shadow:0 0 0 3px rgba(124,92,255,.10)}
+    .friend-add-btn{border:0;border-radius:14px;padding:0 14px;background:linear-gradient(135deg,var(--accent-2),#4ab8ff);color:#fff;font-weight:950;cursor:pointer}.friend-section{margin-top:18px}.friend-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.friend-section-title{font-size:16px;font-weight:950}.friend-count{font-size:11px;color:#9898aa;font-weight:850}
+    .friend-list{display:grid;gap:9px}.friend-card{display:flex;align-items:center;gap:11px;padding:12px;border-radius:17px;background:#171721;border:1px solid rgba(255,255,255,.08)}.friend-avatar-wrap{position:relative;flex:0 0 auto}.friend-avatar{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:#252533;font-size:24px}.online-dot{position:absolute;right:-2px;bottom:-2px;width:13px;height:13px;border-radius:50%;background:var(--good);border:3px solid #171721}.friend-info{min-width:0;flex:1}.friend-name{font-size:14px;font-weight:950}.friend-handle{font-size:11px;color:#9999ab;margin-top:2px}.friend-preview{font-size:11px;color:#c0c0ce;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.friend-actions{display:flex;gap:6px}.friend-mini-btn{border:0;border-radius:11px;padding:8px 9px;background:#2a2a37;color:#fff;font-size:11px;font-weight:900;cursor:pointer}.friend-mini-btn.primary{background:#fff;color:#111}.friend-mini-btn.add{background:rgba(124,92,255,.18);color:#d8d1ff;border:1px solid rgba(124,92,255,.28)}
+    .discover-card{display:flex;align-items:center;gap:11px;padding:11px;border-bottom:1px solid rgba(255,255,255,.06)}.discover-card:last-child{border-bottom:0}.discover-wrap{background:#15151f;border:1px solid rgba(255,255,255,.08);border-radius:17px;overflow:hidden}.empty-friends{padding:22px;text-align:center;border-radius:18px;background:#171721;border:1px dashed rgba(255,255,255,.12);color:#aaaabc;font-size:13px;line-height:1.5}
+    .chat-shell{display:flex;flex-direction:column;min-height:calc(100dvh - 190px)}.chat-top{display:flex;align-items:center;gap:10px;padding:10px 0 13px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:-1px;background:#0c0c14;z-index:4}.chat-back{width:38px;height:38px;border:0;border-radius:12px;background:#1d1d28;color:#fff;font-size:18px;cursor:pointer}.chat-person{display:flex;align-items:center;gap:9px;min-width:0}.chat-person .friend-avatar{width:42px;height:42px;border-radius:14px;font-size:22px}.chat-title{font-size:15px;font-weight:950}.chat-status{font-size:10px;color:#9a9aac;margin-top:2px}.language-toggle{display:flex;gap:5px;margin-left:auto;background:#171721;border:1px solid rgba(255,255,255,.08);padding:4px;border-radius:12px}.lang-btn{border:0;border-radius:9px;background:transparent;color:#9d9dae;padding:6px 8px;font-size:10px;font-weight:900;cursor:pointer}.lang-btn.active{background:#fff;color:#111}
+    .chat-messages{display:flex;flex-direction:column;gap:9px;padding:14px 0 12px;flex:1}.bubble-row{display:flex;align-items:flex-end;gap:7px}.bubble-row.me{justify-content:flex-end}.bubble{max-width:78%;padding:10px 12px;white-space:pre-line;border-radius:16px 16px 16px 5px;background:#1c1c27;border:1px solid rgba(255,255,255,.07);font-size:13px;line-height:1.42}.bubble-row.me .bubble{background:linear-gradient(135deg,rgba(124,92,255,.92),rgba(255,79,134,.82));border-color:transparent;border-radius:16px 16px 5px 16px}.bubble-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px}.lang-pill{font-size:8px;font-weight:950;letter-spacing:.08em;padding:3px 5px;border-radius:999px;background:rgba(255,255,255,.12);color:#d8d8e7}.bubble-translation{font-size:10px;color:#bbbbc9;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.10)}.bubble-time{font-size:8px;color:#9b9bac;margin-top:4px;text-align:right}.quick-phrases{display:flex;gap:6px;overflow-x:auto;padding:3px 0 9px;scrollbar-width:none}.quick-phrases::-webkit-scrollbar{display:none}.quick-phrase{flex:0 0 auto;border:1px solid rgba(255,255,255,.10);background:#171721;color:#ddddec;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:850;cursor:pointer}
+    .chat-compose{position:sticky;bottom:0;background:linear-gradient(to top,#0c0c14 78%,rgba(12,12,20,.84),transparent);padding:10px 0 2px}.compose-row{display:flex;gap:8px;align-items:flex-end}.chat-input{flex:1;resize:none;min-height:43px;max-height:100px;border:1px solid rgba(255,255,255,.10);background:#171721;color:#fff;border-radius:15px;padding:11px 12px;outline:none;font:inherit;font-size:13px;line-height:1.4}.chat-send{width:44px;height:44px;flex:0 0 44px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:18px;font-weight:950;cursor:pointer}.chat-note{font-size:9px;color:#777789;margin-top:7px;line-height:1.4}
+    .tutor-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:19px;background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(255,79,134,.10));border:1px solid rgba(151,127,255,.28);margin:14px 0 18px;box-shadow:0 16px 38px rgba(0,0,0,.14)}.tutor-avatar{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent-2),#4ab8ff);font-size:25px;box-shadow:0 10px 25px rgba(124,92,255,.24)}.tutor-info{min-width:0;flex:1}.tutor-name{font-size:15px;font-weight:950}.tutor-badge{display:inline-flex;align-items:center;gap:5px;margin-left:5px;padding:3px 6px;border-radius:999px;background:rgba(107,229,168,.14);color:#aef0ce;font-size:8px;font-weight:950;vertical-align:2px}.tutor-desc{font-size:11px;color:#b7b7c8;line-height:1.4;margin-top:4px}.tutor-open{border:0;border-radius:12px;padding:9px 11px;background:#fff;color:#111;font-size:11px;font-weight:950;cursor:pointer;flex:0 0 auto}.tutor-intro{padding:12px 13px;border-radius:16px;background:rgba(124,92,255,.10);border:1px solid rgba(124,92,255,.18);font-size:11px;color:#c8c5df;line-height:1.5;margin:10px 0 3px}.tutor-suggestions{display:flex;gap:6px;overflow-x:auto;padding:4px 0 9px;scrollbar-width:none}.tutor-suggestions::-webkit-scrollbar{display:none}.tutor-suggestion{flex:0 0 auto;border:1px solid rgba(124,92,255,.24);background:rgba(124,92,255,.10);color:#e1ddff;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:850;cursor:pointer}.bot-typing{font-size:11px;color:#9898aa;font-style:italic;padding:4px 2px}.tutor-label{font-size:8px;font-weight:950;letter-spacing:.09em;color:#b9b0ff;text-transform:uppercase}.word-mini{display:inline-block;margin-top:6px;padding:4px 7px;border-radius:9px;background:rgba(255,255,255,.09);font-weight:900}
+    .speech-btn{background:linear-gradient(135deg,#ff8b4f,#ff4f86);border:0;box-shadow:0 12px 24px rgba(255,79,134,.22)}
+    .speech-card{text-align:center;padding:4px 0 2px}
+    .speech-target{font-size:28px;line-height:1.2;font-weight:950;letter-spacing:-.04em;margin:11px 0 5px}
+    .speech-meaning{font-size:13px;color:var(--muted);margin-bottom:18px}
+    .mic-orb{width:92px;height:92px;border-radius:50%;border:0;margin:2px auto 13px;display:grid;place-items:center;background:linear-gradient(135deg,#ff8b4f,var(--accent));font-size:34px;color:#fff;cursor:pointer;box-shadow:0 16px 38px rgba(255,79,134,.28);transition:.2s transform,.2s box-shadow}
+    .mic-orb.listening{animation:micpulse 1s ease-in-out infinite;box-shadow:0 0 0 12px rgba(255,79,134,.08),0 16px 38px rgba(255,79,134,.36)}
+    @keyframes micpulse{50%{transform:scale(1.07)}}
+    .speech-status{font-size:14px;font-weight:850;min-height:42px;line-height:1.45;padding:0 8px}
+    .speech-result{margin-top:12px;padding:12px;border-radius:14px;background:#1a1a24;border:1px solid rgba(255,255,255,.08);display:none;text-align:left}
+    .speech-result.show{display:block}.speech-heard{font-size:13px;font-weight:850}.speech-score{margin-top:5px;font-size:12px;color:var(--muted)}
+    .speech-note{margin-top:12px;font-size:10px;color:#8e8e9d;line-height:1.45}
+    .header.me-mode .tabs{display:none}
+    .header.me-mode{background:linear-gradient(to bottom,rgba(8,8,14,.96),rgba(8,8,14,.72),transparent)}
+    .review-card{background:radial-gradient(circle at 20% 18%,rgba(124,92,255,.30),transparent 34%),linear-gradient(160deg,#171525 0%,#11131d 52%,#17131d 100%)}
+    .review-card::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.08),rgba(0,0,0,.15) 35%,rgba(0,0,0,.78));pointer-events:none}
+    .review-mark{position:absolute;top:106px;left:18px;z-index:6;font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;background:rgba(124,92,255,.22);border:1px solid rgba(255,255,255,.18);padding:9px 12px;border-radius:999px;backdrop-filter:blur(12px)}
+    .review-inner{position:absolute;z-index:6;left:18px;right:18px;bottom:calc(104px + env(safe-area-inset-bottom));max-width:390px}
+    .review-eyebrow{font-size:13px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#c9c0ff;margin-bottom:12px}
+    .review-word{font-size:48px;line-height:1;font-weight:950;letter-spacing:-.05em;margin-bottom:10px}
+    .review-prompt{font-size:17px;color:rgba(255,255,255,.72);margin-bottom:18px}
+    .review-choices{display:grid;gap:9px}
+    .review-choice{width:100%;text-align:left;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;padding:14px 15px;border-radius:16px;font:inherit;font-weight:800;cursor:pointer;transition:.18s}
+    .review-choice:hover{background:rgba(255,255,255,.13)}
+    .review-choice.correct{background:rgba(50,205,125,.20);border-color:rgba(80,235,150,.75)}
+    .review-choice.wrong{background:rgba(255,88,96,.18);border-color:rgba(255,100,110,.72)}
+    .review-result{min-height:22px;margin-top:12px;font-size:14px;font-weight:800;color:#bff7d6}
+    .review-source{margin-top:9px;font-size:13px;color:rgba(255,255,255,.52)}
+    .review-done-pill{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:8px 11px;border-radius:999px;background:rgba(50,205,125,.14);border:1px solid rgba(80,235,150,.3);font-size:12px;font-weight:900;color:#c9f8dc}
+    @media (max-height:740px){.actions{gap:10px}.action-btn{width:44px;height:44px}.lesson-ui{padding-right:67px}.jp-line{font-size:27px}}
+
+    .search-library-head{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:19px 0 10px}.search-library-title{font-size:17px;font-weight:950;letter-spacing:-.03em}.search-library-sub{font-size:9px;color:#8f8fa1;text-align:right;line-height:1.35}
+    .topic-card .situation-icon{background:linear-gradient(135deg,rgba(255,79,134,.18),rgba(124,92,255,.18))}.topic-pill{display:inline-flex;width:max-content;margin-top:7px;padding:4px 6px;border-radius:999px;background:rgba(255,79,134,.11);color:#ffc3d5;font-size:8px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
+    .smart-generate{margin:16px 0;padding:15px;border-radius:18px;background:linear-gradient(135deg,rgba(124,92,255,.15),rgba(74,184,255,.08));border:1px solid rgba(124,92,255,.25)}.smart-generate-top{display:flex;align-items:center;gap:10px}.smart-generate-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent-2),#4ab8ff);font-size:20px}.smart-generate-title{font-size:14px;font-weight:950}.smart-generate-copy{font-size:10px;color:#b5b5c6;line-height:1.45;margin-top:3px}.smart-generate-btn{width:100%;margin-top:11px;border:0;border-radius:12px;padding:10px 12px;background:#fff;color:#111;font-weight:950;font-size:11px;cursor:pointer}
+    .stats-title{font-size:16px;font-weight:950;margin:20px 0 9px}.learning-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}.learning-stat{padding:13px;border-radius:16px;background:#171721;border:1px solid rgba(255,255,255,.075)}.learning-stat-label{font-size:9px;color:#9494a5;text-transform:uppercase;letter-spacing:.08em;font-weight:900}.learning-stat-value{font-size:21px;font-weight:950;letter-spacing:-.04em;margin-top:5px}.learning-stat-note{font-size:9px;color:#858596;margin-top:3px;line-height:1.35}
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <main class="phone" aria-label="Manabu Japanese learning app">
+    <header class="header" id="mainHeader">
+      <div class="header-row">
+        <div class="brand"><span class="brand-mark">M</span>manabu</div>
+        <div class="stats">
+          <div class="stat" title="Current streak">🔥 <span id="streakCount">3</span></div>
+          <div class="stat" title="XP today">⚡ <span id="xpCount">120</span></div>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-filter="all">For You</button>
+        <button class="tab" data-filter="beginner">Beginner</button>
+        <button class="tab" data-filter="search">Search</button>
+      </div>
+    </header>
+
+    <section class="feed" id="feed" aria-label="Spoken Japanese lesson feed"></section>
+
+    <section class="app-page search-tab-page" id="searchPage" aria-label="Search Japanese by situation">
+      <div class="page-kicker">Japanese when you need it</div>
+      <h1 class="page-title">Search</h1>
+      <div class="page-sub">Search a <strong>topic</strong> like colours, food or clothing — or a <strong>situation</strong> like café, pool or train — and get useful spoken Japanese instantly.</div>
+      <div id="searchContent"></div>
+    </section>
+
+    <section class="app-page" id="friendsPage" aria-label="Manabu friends">
+      <div class="page-kicker">Learn together</div>
+      <h1 class="page-title">Friends</h1>
+      <div class="page-sub">Add other learners and practise together in English or spoken Japanese written in romaji.</div>
+      <div id="friendsContent"></div>
+    </section>
+
+    <section class="app-page" id="mePage" aria-label="Your Manabu profile">
+      <div class="page-kicker">Your space</div>
+      <h1 class="page-title">Me</h1>
+      <div class="page-sub">Track your speaking progress, choose your look, and spend the XP you earn from learning.</div>
+      <div id="meContent"></div>
+    </section>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-btn active" data-page="home"><span class="nav-icon">⌂</span><span>Learn</span></button>
+      <button class="nav-btn" data-page="friends"><span class="nav-icon">☻</span><span>Friends</span></button>
+      <button class="nav-btn" data-page="progress"><span class="nav-icon">◔</span><span>Progress</span></button>
+      <button class="nav-btn" data-page="profile"><span class="nav-icon">☺</span><span>Me</span></button>
+    </nav>
+
+    <div class="toast" id="toast">Saved</div>
+    <div class="sheet" id="sheet" aria-hidden="true"><div class="sheet-card" id="sheetCard"></div></div>
+
+    <section class="onboarding" id="onboarding">
+      <div class="onboard-card">
+        <div class="onboard-mark">M</div>
+        <h1>Spoken Japanese<br/>that actually sticks.</h1>
+        <p>Learn useful spoken Japanese in English letters first. Listen, tap each word for meaning, save what matters, then test yourself with a 10-second quiz.</p>
+        <div class="goal-pills" aria-label="Learning goal">
+          <button class="goal active">Everyday Japanese</button>
+          <button class="goal">Travel</button>
+          <button class="goal">Anime</button>
+          <button class="goal">Conversation</button>
+        </div>
+        <button class="start-btn" id="startBtn">Start learning →</button>
+        <div class="hint">No account needed for this prototype.</div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const lessons = [
+  {
+    id:'ohayo', level:'beginner', tag:'Morning · Beginner', scene:'sunrise', float:'ohayou',
+    phrase:'Ohayou! Yoku neta?', speech:'おはよう！よく寝た？', en:'Morning! Did you sleep well?',
+    explain:'Casual Japanese. A more polite version of “good morning” is ohayou gozaimasu.',
+    words:[['ohayou','good morning'],['yoku','well'],['neta','slept']],
+    quiz:{q:'What does “yoku neta?” mean?', a:'Did you sleep well?', choices:['Did you sleep well?','Are you hungry?','Where are you going?']}
+  },
+  {
+    id:'daijobu', level:'beginner', tag:'Everyday · Beginner', scene:'station', float:'daijoubu?',
+    phrase:'Daijoubu?', speech:'大丈夫？', en:'Are you okay? / Is it alright?',
+    explain:'One of the most useful Japanese words. With a questioning tone, daijoubu? means “Are you okay?” Daijoubu desu can mean “I’m okay” or “No thanks.”',
+    words:[['daijoubu','okay / alright / fine'],['desu','is / am / are — polite ending']],
+    quiz:{q:'A friend drops their bag. What can you ask?', a:'Daijoubu?', choices:['Daijoubu?','Itadakimasu','Oyasumi']}
+  },
+  {
+    id:'desuka', level:'beginner', tag:'Questions · Beginner', scene:'city', float:'desu ka?',
+    phrase:'Genki desu ka?', speech:'元気ですか？', en:'How are you? / Are you well?',
+    explain:'Desu ka is a super-useful polite question ending. You will hear it constantly. Think of it as a pattern that turns a polite statement into a question.',
+    words:[['genki','well / healthy / energetic'],['desu ka','polite question ending']],
+    quiz:{q:'What does “desu ka” usually tell you?', a:'It is a polite question', choices:['It is a polite question','It means thank you','It means goodbye']}
+  },
+  {
+    id:'kudasai', level:'travel', tag:'Café · Travel', scene:'cafe', float:'kudasai',
+    phrase:'Koohii o hitotsu kudasai.', speech:'コーヒーを一つください。', en:'One coffee, please.',
+    explain:'Kudasai means “please give me”. Hitotsu is a useful way to say “one thing” when ordering.',
+    words:[['koohii','coffee'],['o','marks the thing you want'],['hitotsu','one thing'],['kudasai','please give me']],
+    quiz:{q:'How do you politely ask for one coffee?', a:'Koohii o hitotsu kudasai.', choices:['Koohii o hitotsu kudasai.','Koohii wa doko?','Koohii janai.']}
+  },
+  {
+    id:'ikura', level:'travel', tag:'Shopping · Travel', scene:'market', float:'ikura?',
+    phrase:'Kore wa ikura desu ka?', speech:'これはいくらですか？', en:'How much is this?',
+    explain:'This is a brilliant pattern to learn whole. Kore = this, ikura = how much, and desu ka makes it a polite question.',
+    words:[['kore','this'],['wa','topic marker — “as for…”'],['ikura','how much'],['desu ka','polite question ending']],
+    quiz:{q:'Which part means “how much”?', a:'ikura', choices:['kore','ikura','doko']}
+  },
+  {
+    id:'uma', level:'all', tag:'Food · Casual', scene:'ramen', float:'umai!',
+    phrase:'Kore, meccha umai!', speech:'これ、めっちゃうまい！', en:'This is seriously delicious!',
+    explain:'Umai is a casual way to say “tasty” or “delicious”. Meccha means “really” or “super” in casual speech.',
+    words:[['kore','this'],['meccha','really / super'],['umai','delicious / tasty']],
+    quiz:{q:'Which word is casual Japanese for “delicious”?', a:'umai', choices:['umai','tabemasu','doko']}
+  },
+  {
+    id:'where', level:'travel', tag:'Directions · Travel', scene:'street', float:'doko?',
+    phrase:'Eki wa doko desu ka?', speech:'駅はどこですか？', en:'Where is the station?',
+    explain:'Doko means “where”. Once you know the pattern “___ wa doko desu ka?”, you can ask where almost anything is.',
+    words:[['eki','station'],['wa','topic marker'],['doko','where'],['desu ka','polite question ending']],
+    quiz:{q:'How would you ask “Where is the toilet?”', a:'Toire wa doko desu ka?', choices:['Toire wa doko desu ka?','Toire wa ikura desu ka?','Toire o kudasai.']}
+  },
+  {
+    id:'wakarimasen', level:'beginner', tag:'Conversation · Beginner', scene:'night', float:'wakarimasen',
+    phrase:'Sumimasen, wakarimasen.', speech:'すみません、わかりません。', en:'Sorry, I don’t understand.',
+    explain:'A lifesaver for learners. Sumimasen means “sorry / excuse me”. Wakarimasen means “I don’t understand.”',
+    words:[['sumimasen','sorry / excuse me'],['wakarimasen','I do not understand']],
+    quiz:{q:'You are lost in a fast conversation. What can you say?', a:'Sumimasen, wakarimasen.', choices:['Sumimasen, wakarimasen.','Onaka ga sukimashita.','Itadakimasu.']}
+  },
+  {
+    id:'arigatou', level:'beginner', tag:'Everyday · Beginner', scene:'sunrise', float:'arigatou',
+    phrase:'Arigatou gozaimasu.', speech:'ありがとうございます。', en:'Thank you very much.',
+    explain:'Arigatou is casual “thanks”. Arigatou gozaimasu is more polite and is a great default with people you do not know well.',
+    words:[['arigatou','thank you'],['gozaimasu','adds politeness']],
+    quiz:{q:'Which is the more polite “thank you”?', a:'Arigatou gozaimasu.', choices:['Arigatou gozaimasu.','Daijoubu?','Doko desu ka?']}
+  },
+  {
+    id:'yoroshiku', level:'beginner', tag:'Introductions · Beginner', scene:'city', float:'hajimemashite',
+    phrase:'Hajimemashite. Yoroshiku onegaishimasu.', speech:'はじめまして。よろしくお願いします。', en:'Nice to meet you.',
+    explain:'Use hajimemashite when meeting someone for the first time. Yoroshiku onegaishimasu is a very common polite phrase that follows an introduction.',
+    words:[['hajimemashite','nice to meet you / first time meeting'],['yoroshiku','kindly / favourably'],['onegaishimasu','please / I ask this of you']],
+    quiz:{q:'Which phrase fits a first introduction?', a:'Hajimemashite.', choices:['Hajimemashite.','Tadaima.','Okaeri.']}
+  }
+];
+
+const situations = [
+  {id:'cafe',icon:'☕',name:'Café',desc:'Order drinks, ask about milk, takeaway and the bill.',keywords:['cafe','coffee','drink','latte','breakfast','tea','takeaway'],words:[
+    {r:'koohii',en:'coffee',speech:'コーヒー'},{r:'ocha',en:'tea',speech:'お茶'},{r:'mizu',en:'water',speech:'水'},{r:'miruku',en:'milk',speech:'ミルク'},{r:'satou',en:'sugar',speech:'砂糖'},{r:'mochikaeri',en:'takeaway / to go',speech:'持ち帰り'}],phrases:[
+    {r:'Koohii o hitotsu kudasai.',en:'One coffee, please.',speech:'コーヒーを一つください。'},
+    {r:'Kore o kudasai.',en:'This one, please.',speech:'これをください。'},
+    {r:'Miruku wa arimasu ka?',en:'Do you have milk?',speech:'ミルクはありますか？'},
+    {r:'Mizu o moraemasu ka?',en:'Can I have some water?',speech:'水をもらえますか？'},
+    {r:'Mochikaeri de onegaishimasu.',en:'Takeaway, please.',speech:'持ち帰りでお願いします。'},
+    {r:'Okaikei onegaishimasu.',en:'The bill, please.',speech:'お会計お願いします。'}]},
+  {id:'restaurant',icon:'🍜',name:'Restaurant',desc:'Get a table, order food and ask what is recommended.',keywords:['restaurant','food','dinner','lunch','eat','meal','ramen'],words:[
+    {r:'menyuu',en:'menu',speech:'メニュー'},{r:'osusume',en:'recommendation',speech:'おすすめ'},{r:'oishii',en:'delicious',speech:'美味しい'},{r:'yasai',en:'vegetables',speech:'野菜'},{r:'niku',en:'meat',speech:'肉'},{r:'gohan',en:'rice / meal',speech:'ご飯'}],phrases:[
+    {r:'Futari desu.',en:'A table for two / There are two of us.',speech:'二人です。'},
+    {r:'Menyuu o kudasai.',en:'Menu, please.',speech:'メニューをください。'},
+    {r:'Osusume wa nan desu ka?',en:'What do you recommend?',speech:'おすすめは何ですか？'},
+    {r:'Kore wa nan desu ka?',en:'What is this?',speech:'これは何ですか？'},
+    {r:'Kore o hitotsu kudasai.',en:'One of these, please.',speech:'これを一つください。'},
+    {r:'Okaikei onegaishimasu.',en:'The bill, please.',speech:'お会計お願いします。'}]},
+  {id:'hotel',icon:'🏨',name:'Hotel',desc:'Check in, find your room and ask for help.',keywords:['hotel','accommodation','room','check in','check-in','stay','booking'],words:[
+    {r:'heya',en:'room',speech:'部屋'},{r:'yoyaku',en:'reservation',speech:'予約'},{r:'kagi',en:'key',speech:'鍵'},{r:'toire',en:'toilet',speech:'トイレ'},{r:'asa gohan',en:'breakfast',speech:'朝ご飯'},{r:'Wi-Fi',en:'Wi-Fi',speech:'ワイファイ'}],phrases:[
+    {r:'Yoyaku shiteimasu.',en:'I have a reservation.',speech:'予約しています。'},
+    {r:'Chekku in onegaishimasu.',en:'I would like to check in, please.',speech:'チェックインお願いします。'},
+    {r:'Heya wa doko desu ka?',en:'Where is the room?',speech:'部屋はどこですか？'},
+    {r:'Wi-Fi wa arimasu ka?',en:'Is there Wi-Fi?',speech:'ワイファイはありますか？'},
+    {r:'Asa gohan wa nanji desu ka?',en:'What time is breakfast?',speech:'朝ご飯は何時ですか？'},
+    {r:'Tasukete moraemasu ka?',en:'Can you help me?',speech:'助けてもらえますか？'}]},
+  {id:'train',icon:'🚆',name:'Train',desc:'Buy tickets, find platforms and check where a train goes.',keywords:['train','station','rail','ticket','platform','metro','subway'],words:[
+    {r:'eki',en:'station',speech:'駅'},{r:'kippu',en:'ticket',speech:'切符'},{r:'densha',en:'train',speech:'電車'},{r:'noriba',en:'platform / boarding place',speech:'乗り場'},{r:'tsugi',en:'next',speech:'次'},{r:'doko',en:'where',speech:'どこ'}],phrases:[
+    {r:'Eki wa doko desu ka?',en:'Where is the station?',speech:'駅はどこですか？'},
+    {r:'Kippu o hitotsu kudasai.',en:'One ticket, please.',speech:'切符を一つください。'},
+    {r:'Noriba wa doko desu ka?',en:'Where is the platform?',speech:'乗り場はどこですか？'},
+    {r:'Kono densha wa Tokyo ni ikimasu ka?',en:'Does this train go to Tokyo?',speech:'この電車は東京に行きますか？'},
+    {r:'Tsugi no densha wa nanji desu ka?',en:'What time is the next train?',speech:'次の電車は何時ですか？'},
+    {r:'Koko de orimasu ka?',en:'Do I get off here?',speech:'ここで降りますか？'}]},
+  {id:'airport',icon:'✈️',name:'Airport',desc:'Check in, find your gate and deal with luggage.',keywords:['airport','flight','plane','gate','luggage','baggage','check in'],words:[
+    {r:'kuukou',en:'airport',speech:'空港'},{r:'hikouki',en:'airplane',speech:'飛行機'},{r:'nimotsu',en:'luggage',speech:'荷物'},{r:'geeto',en:'gate',speech:'ゲート'},{r:'pasupooto',en:'passport',speech:'パスポート'},{r:'shuppatsu',en:'departure',speech:'出発'}],phrases:[
+    {r:'Chekku in wa doko desu ka?',en:'Where is check-in?',speech:'チェックインはどこですか？'},
+    {r:'Geeto wa doko desu ka?',en:'Where is the gate?',speech:'ゲートはどこですか？'},
+    {r:'Kono nimotsu o azuketai desu.',en:'I would like to check this luggage.',speech:'この荷物を預けたいです。'},
+    {r:'Pasupooto wa koko desu.',en:'Here is my passport.',speech:'パスポートはここです。'},
+    {r:'Hikouki wa nanji desu ka?',en:'What time is the flight?',speech:'飛行機は何時ですか？'},
+    {r:'Okureteimasu ka?',en:'Is it delayed?',speech:'遅れていますか？'}]},
+  {id:'shopping',icon:'🛍️',name:'Shopping',desc:'Ask prices, sizes, colours and whether you can try something.',keywords:['shopping','shop','store','clothes','price','buy','mall'],words:[
+    {r:'ikura',en:'how much',speech:'いくら'},{r:'kore',en:'this',speech:'これ'},{r:'ookii',en:'big',speech:'大きい'},{r:'chiisai',en:'small',speech:'小さい'},{r:'iro',en:'colour',speech:'色'},{r:'saizu',en:'size',speech:'サイズ'}],phrases:[
+    {r:'Kore wa ikura desu ka?',en:'How much is this?',speech:'これはいくらですか？'},
+    {r:'Kore o kudasai.',en:'This one, please.',speech:'これをください。'},
+    {r:'Motto ookii saizu wa arimasu ka?',en:'Do you have a bigger size?',speech:'もっと大きいサイズはありますか？'},
+    {r:'Motto chiisai saizu wa arimasu ka?',en:'Do you have a smaller size?',speech:'もっと小さいサイズはありますか？'},
+    {r:'Shichaku shite mo ii desu ka?',en:'Can I try it on?',speech:'試着してもいいですか？'},
+    {r:'Hoka no iro wa arimasu ka?',en:'Do you have another colour?',speech:'他の色はありますか？'}]},
+  {id:'directions',icon:'🗺️',name:'Directions',desc:'Ask where places are and whether they are near or far.',keywords:['directions','where','lost','map','location','toilet','bathroom'],words:[
+    {r:'doko',en:'where',speech:'どこ'},{r:'koko',en:'here',speech:'ここ'},{r:'soko',en:'there',speech:'そこ'},{r:'chikai',en:'near',speech:'近い'},{r:'tooi',en:'far',speech:'遠い'},{r:'massugu',en:'straight ahead',speech:'まっすぐ'}],phrases:[
+    {r:'Toire wa doko desu ka?',en:'Where is the toilet?',speech:'トイレはどこですか？'},
+    {r:'Eki wa doko desu ka?',en:'Where is the station?',speech:'駅はどこですか？'},
+    {r:'Koko kara chikai desu ka?',en:'Is it near here?',speech:'ここから近いですか？'},
+    {r:'Koko kara tooi desu ka?',en:'Is it far from here?',speech:'ここから遠いですか？'},
+    {r:'Dou ikeba ii desu ka?',en:'How should I get there?',speech:'どう行けばいいですか？'},
+    {r:'Mou ichido onegaishimasu.',en:'One more time, please.',speech:'もう一度お願いします。'}]},
+  {id:'convenience',icon:'🏪',name:'Convenience Store',desc:'Pay, ask for a bag and find everyday items.',keywords:['convenience store','konbini','7 eleven','shop','snack','water','food'],words:[
+    {r:'fukuro',en:'bag',speech:'袋'},{r:'hashi',en:'chopsticks',speech:'箸'},{r:'mizu',en:'water',speech:'水'},{r:'onigiri',en:'rice ball',speech:'おにぎり'},{r:'atataka',en:'warm / heated',speech:'温かい'},{r:'reji',en:'checkout',speech:'レジ'}],phrases:[
+    {r:'Fukuro o kudasai.',en:'A bag, please.',speech:'袋をください。'},
+    {r:'Hashi o kudasai.',en:'Chopsticks, please.',speech:'箸をください。'},
+    {r:'Kore o atatamete kudasai.',en:'Please heat this up.',speech:'これを温めてください。'},
+    {r:'Kore wa ikura desu ka?',en:'How much is this?',speech:'これはいくらですか？'},
+    {r:'Kaado de haraemasu ka?',en:'Can I pay by card?',speech:'カードで払えますか？'},
+    {r:'Daijoubu desu.',en:'No thanks / I’m okay.',speech:'大丈夫です。'}]},
+  {id:'taxi',icon:'🚕',name:'Taxi',desc:'Tell the driver where you are going and ask the fare.',keywords:['taxi','cab','driver','ride','uber','destination'],words:[
+    {r:'koko',en:'here',speech:'ここ'},{r:'made',en:'as far as / until',speech:'まで'},{r:'onegaishimasu',en:'please',speech:'お願いします'},{r:'tomete',en:'stop',speech:'止めて'},{r:'ikura',en:'how much',speech:'いくら'},{r:'jikan',en:'time',speech:'時間'}],phrases:[
+    {r:'Koko made onegaishimasu.',en:'To here, please.',speech:'ここまでお願いします。'},
+    {r:'Tokyo eki made onegaishimasu.',en:'To Tokyo Station, please.',speech:'東京駅までお願いします。'},
+    {r:'Koko de tomete kudasai.',en:'Please stop here.',speech:'ここで止めてください。'},
+    {r:'Ikura desu ka?',en:'How much is it?',speech:'いくらですか？'},
+    {r:'Dono kurai kakarimasu ka?',en:'How long will it take?',speech:'どのくらいかかりますか？'},
+    {r:'Arigatou gozaimasu.',en:'Thank you very much.',speech:'ありがとうございます。'}]},
+  {id:'football',icon:'⚽',name:'Football',desc:'Simple Japanese for training, games and teammates.',keywords:['football','soccer','sport','training','game','team','coach'],words:[
+    {r:'saakkaa',en:'football / soccer',speech:'サッカー'},{r:'booru',en:'ball',speech:'ボール'},{r:'paasu',en:'pass',speech:'パス'},{r:'shuuto',en:'shot',speech:'シュート'},{r:'hayai',en:'fast',speech:'速い'},{r:'ganbatte',en:'do your best / go for it',speech:'頑張って'}],phrases:[
+    {r:'Ganbatte!',en:'Go for it! / Do your best!',speech:'頑張って！'},
+    {r:'Naisu paasu!',en:'Nice pass!',speech:'ナイスパス！'},
+    {r:'Naisu shuuto!',en:'Nice shot!',speech:'ナイスシュート！'},
+    {r:'Kocchi!',en:'Over here!',speech:'こっち！'},
+    {r:'Daijoubu?',en:'Are you okay?',speech:'大丈夫？'},
+    {r:'Mou ikkai!',en:'One more time!',speech:'もう一回！'}]},
+  {id:'meeting',icon:'👋',name:'Meeting People',desc:'Introduce yourself and handle simple first conversations.',keywords:['meeting','people','introduction','hello','name','friend','conversation'],words:[
+    {r:'hajimemashite',en:'nice to meet you',speech:'はじめまして'},{r:'namae',en:'name',speech:'名前'},{r:'watashi',en:'I / me',speech:'私'},{r:'tomodachi',en:'friend',speech:'友達'},{r:'genki',en:'well / energetic',speech:'元気'},{r:'yoroshiku',en:'please treat me kindly',speech:'よろしく'}],phrases:[
+    {r:'Hajimemashite.',en:'Nice to meet you.',speech:'はじめまして。'},
+    {r:'Watashi wa Ben desu.',en:'I’m Ben.',speech:'私はベンです。'},
+    {r:'Onamae wa nan desu ka?',en:'What is your name?',speech:'お名前は何ですか？'},
+    {r:'Genki desu ka?',en:'How are you?',speech:'元気ですか？'},
+    {r:'Nihongo o benkyou shiteimasu.',en:'I’m studying Japanese.',speech:'日本語を勉強しています。'},
+    {r:'Yoroshiku onegaishimasu.',en:'Nice to meet you / please treat me kindly.',speech:'よろしくお願いします。'}]},
+  {id:'emergency',icon:'🆘',name:'Need Help',desc:'Get help when you are lost, unwell or need assistance.',keywords:['help','emergency','lost','police','doctor','sick','hospital'],words:[
+    {r:'tasukete',en:'help me',speech:'助けて'},{r:'byouin',en:'hospital',speech:'病院'},{r:'keisatsu',en:'police',speech:'警察'},{r:'itai',en:'it hurts / painful',speech:'痛い'},{r:'mayotta',en:'lost',speech:'迷った'},{r:'daijoubu',en:'okay / alright',speech:'大丈夫'}],phrases:[
+    {r:'Tasukete kudasai.',en:'Please help me.',speech:'助けてください。'},
+    {r:'Michi ni mayoimashita.',en:'I’m lost.',speech:'道に迷いました。'},
+    {r:'Byouin wa doko desu ka?',en:'Where is the hospital?',speech:'病院はどこですか？'},
+    {r:'Keisatsu wa doko desu ka?',en:'Where are the police?',speech:'警察はどこですか？'},
+    {r:'Koko ga itai desu.',en:'It hurts here.',speech:'ここが痛いです。'},
+    {r:'Eigo o hanasemasu ka?',en:'Can you speak English?',speech:'英語を話せますか？'}]},
+  {id:'themepark',icon:'🎢',name:'Theme Park',desc:'Buy tickets, ask about rides, queues and photos.',keywords:['theme park','rides','roller coaster','ticket','queue','amusement park','disney','universal'],words:[
+    {r:'kippu',en:'ticket',speech:'切符'},{r:'norimono',en:'ride / attraction',speech:'乗り物'},{r:'matsu',en:'wait',speech:'待つ'},{r:'hayai',en:'fast',speech:'速い'},{r:'shashin',en:'photo',speech:'写真'},{r:'tanoshii',en:'fun',speech:'楽しい'}],phrases:[
+    {r:'Kippu wa doko de kaemasu ka?',en:'Where can I buy tickets?',speech:'切符はどこで買えますか？'},
+    {r:'Ichiban ninki no norimono wa nan desu ka?',en:'What is the most popular ride?',speech:'一番人気の乗り物は何ですか？'},
+    {r:'Machi jikan wa dono kurai desu ka?',en:'How long is the wait time?',speech:'待ち時間はどのくらいですか？'},
+    {r:'Koko de shashin o totte mo ii desu ka?',en:'Can I take a photo here?',speech:'ここで写真を撮ってもいいですか？'},
+    {r:'Toire wa doko desu ka?',en:'Where is the toilet?',speech:'トイレはどこですか？'},
+    {r:'Mou ikkai noritai desu.',en:'I want to ride it one more time.',speech:'もう一回乗りたいです。'}]},
+  {id:'pool',icon:'🏊',name:'Pool',desc:'Useful words for swimming, changing, lockers and asking about lanes.',keywords:['pool','swimming','swim','locker','towel','goggles','lane'],words:[
+    {r:'puuru',en:'pool',speech:'プール'},{r:'mizugi',en:'swimsuit',speech:'水着'},{r:'taoru',en:'towel',speech:'タオル'},{r:'rokkaa',en:'locker',speech:'ロッカー'},{r:'oyogu',en:'to swim',speech:'泳ぐ'},{r:'suiei',en:'swimming',speech:'水泳'}],phrases:[
+    {r:'Puuru wa doko desu ka?',en:'Where is the pool?',speech:'プールはどこですか？'},
+    {r:'Rokkaa wa arimasu ka?',en:'Are there lockers?',speech:'ロッカーはありますか？'},
+    {r:'Taoru o kariraremasu ka?',en:'Can I borrow a towel?',speech:'タオルを借りられますか？'},
+    {r:'Koko de oyoide mo ii desu ka?',en:'Can I swim here?',speech:'ここで泳いでもいいですか？'},
+    {r:'Oyogu reen wa doko desu ka?',en:'Which lane is for swimming?',speech:'泳ぐレーンはどこですか？'},
+    {r:'Mizu wa tsumetai desu ne.',en:'The water is cold, isn’t it?',speech:'水は冷たいですね。'}]},
+  {id:'beach',icon:'🏖️',name:'Beach',desc:'Talk about swimming, sunscreen, waves and meeting up.',keywords:['beach','sea','ocean','sun','swimming','sand','waves'],words:[
+    {r:'umi',en:'sea / ocean',speech:'海'},{r:'suna',en:'sand',speech:'砂'},{r:'nami',en:'waves',speech:'波'},{r:'hiyake dome',en:'sunscreen',speech:'日焼け止め'},{r:'atsui',en:'hot',speech:'暑い'},{r:'abunai',en:'dangerous',speech:'危ない'}],phrases:[
+    {r:'Umi ni haitte mo ii desu ka?',en:'Can I go into the sea?',speech:'海に入ってもいいですか？'},
+    {r:'Hiyake dome wa arimasu ka?',en:'Do you have sunscreen?',speech:'日焼け止めはありますか？'},
+    {r:'Koko wa abunai desu ka?',en:'Is it dangerous here?',speech:'ここは危ないですか？'},
+    {r:'Doko de aimashou ka?',en:'Where shall we meet?',speech:'どこで会いましょうか？'},
+    {r:'Nami ga takai desu ne.',en:'The waves are big, aren’t they?',speech:'波が高いですね。'},
+    {r:'Mizu o nomitai desu.',en:'I want to drink water.',speech:'水を飲みたいです。'}]},
+  {id:'bus',icon:'🚌',name:'Bus',desc:'Catch the right bus, ask the stop and pay the fare.',keywords:['bus','bus stop','stop','transport','fare','card','driver'],words:[
+    {r:'basu',en:'bus',speech:'バス'},{r:'basu tei',en:'bus stop',speech:'バス停'},{r:'ryoukin',en:'fare',speech:'料金'},{r:'unten shu',en:'driver',speech:'運転手'},{r:'oriru',en:'get off',speech:'降りる'},{r:'ic card',en:'transit card',speech:'ICカード'}],phrases:[
+    {r:'Basu tei wa doko desu ka?',en:'Where is the bus stop?',speech:'バス停はどこですか？'},
+    {r:'Kono basu wa eki ni ikimasu ka?',en:'Does this bus go to the station?',speech:'このバスは駅に行きますか？'},
+    {r:'Ryoukin wa ikura desu ka?',en:'How much is the fare?',speech:'料金はいくらですか？'},
+    {r:'Koko de oritai desu.',en:'I want to get off here.',speech:'ここで降りたいです。'},
+    {r:'Tsugi no basu wa nanji desu ka?',en:'What time is the next bus?',speech:'次のバスは何時ですか？'},
+    {r:'IC kaado wa tsukaemasu ka?',en:'Can I use an IC card?',speech:'ICカードは使えますか？'}]},
+  {id:'pharmacy',icon:'💊',name:'Pharmacy',desc:'Ask for medicine, describe basic symptoms and get help.',keywords:['pharmacy','chemist','medicine','cold','headache','pain','symptoms'],words:[
+    {r:'kusuri',en:'medicine',speech:'薬'},{r:'netsu',en:'fever',speech:'熱'},{r:'zutsuu',en:'headache',speech:'頭痛'},{r:'seki',en:'cough',speech:'咳'},{r:'nodo',en:'throat',speech:'喉'},{r:'kusuriya',en:'pharmacy',speech:'薬屋'}],phrases:[
+    {r:'Kusuri wa arimasu ka?',en:'Do you have medicine?',speech:'薬はありますか？'},
+    {r:'Zutsuu ga shimasu.',en:'I have a headache.',speech:'頭痛がします。'},
+    {r:'Netsu ga arimasu.',en:'I have a fever.',speech:'熱があります。'},
+    {r:'Nodo ga itai desu.',en:'My throat hurts.',speech:'喉が痛いです。'},
+    {r:'Kono kusuri wa dono you ni nomimasu ka?',en:'How do I take this medicine?',speech:'この薬はどのように飲みますか？'},
+    {r:'Eigo o hanaseru hito wa imasu ka?',en:'Is there someone who speaks English?',speech:'英語を話せる人はいますか？'}]},
+  {id:'doctor',icon:'🩺',name:'Doctor',desc:'Check in, describe how you feel and answer simple questions.',keywords:['doctor','clinic','medical','appointment','sick','pain','health'],words:[
+    {r:'isha',en:'doctor',speech:'医者'},{r:'shinryoujo',en:'clinic',speech:'診療所'},{r:'yoyaku',en:'appointment',speech:'予約'},{r:'itai',en:'painful',speech:'痛い'},{r:'hakike',en:'nausea',speech:'吐き気'},{r:'daijoubu',en:'okay',speech:'大丈夫'}],phrases:[
+    {r:'Isha ni aitai desu.',en:'I want to see a doctor.',speech:'医者に会いたいです。'},
+    {r:'Yoyaku wa arimasen.',en:'I do not have an appointment.',speech:'予約はありません。'},
+    {r:'Onaka ga itai desu.',en:'My stomach hurts.',speech:'お腹が痛いです。'},
+    {r:'Kyou wa kibun ga warui desu.',en:'I feel unwell today.',speech:'今日は気分が悪いです。'},
+    {r:'Dono kurai tsuzuiteimasu ka?',en:'How long has it been going on?',speech:'どのくらい続いていますか？'},
+    {r:'Arerugii wa arimasen.',en:'I do not have any allergies.',speech:'アレルギーはありません。'}]},
+  {id:'supermarket',icon:'🛒',name:'Supermarket',desc:'Find ingredients, ask where things are and pay.',keywords:['supermarket','grocery','food','ingredients','checkout','fruit','vegetables'],words:[
+    {r:'suupaa',en:'supermarket',speech:'スーパー'},{r:'kudamono',en:'fruit',speech:'果物'},{r:'yasai',en:'vegetables',speech:'野菜'},{r:'tamago',en:'eggs',speech:'卵'},{r:'pan',en:'bread',speech:'パン'},{r:'reji',en:'checkout',speech:'レジ'}],phrases:[
+    {r:'Pan wa doko desu ka?',en:'Where is the bread?',speech:'パンはどこですか？'},
+    {r:'Tamago wa arimasu ka?',en:'Do you have eggs?',speech:'卵はありますか？'},
+    {r:'Kore wa yasui desu ne.',en:'This is cheap, isn’t it?',speech:'これは安いですね。'},
+    {r:'Fukuro wa irimasu ka?',en:'Do I need a bag?',speech:'袋はいりますか？'},
+    {r:'Kaado de haraemasu ka?',en:'Can I pay by card?',speech:'カードで払えますか？'},
+    {r:'Reji wa doko desu ka?',en:'Where is the checkout?',speech:'レジはどこですか？'}]},
+  {id:'school',icon:'🏫',name:'School',desc:'Talk about class, teachers, homework and where rooms are.',keywords:['school','class','teacher','homework','student','lesson','study'],words:[
+    {r:'gakkou',en:'school',speech:'学校'},{r:'sensei',en:'teacher',speech:'先生'},{r:'jugyou',en:'class / lesson',speech:'授業'},{r:'shukudai',en:'homework',speech:'宿題'},{r:'seito',en:'student',speech:'生徒'},{r:'kyoushitsu',en:'classroom',speech:'教室'}],phrases:[
+    {r:'Kyoushitsu wa doko desu ka?',en:'Where is the classroom?',speech:'教室はどこですか？'},
+    {r:'Sensei wa doko desu ka?',en:'Where is the teacher?',speech:'先生はどこですか？'},
+    {r:'Shukudai wa arimasu ka?',en:'Is there homework?',speech:'宿題はありますか？'},
+    {r:'Nihongo o benkyou shiteimasu.',en:'I am studying Japanese.',speech:'日本語を勉強しています。'},
+    {r:'Mou ichido setsumei shite kudasai.',en:'Please explain it one more time.',speech:'もう一度説明してください。'},
+    {r:'Wakarimasen.',en:'I do not understand.',speech:'分かりません。'}]},
+  {id:'gym',icon:'🏋️',name:'Gym',desc:'Ask about equipment, workouts and where things are.',keywords:['gym','fitness','workout','exercise','weights','treadmill','training'],words:[
+    {r:'jimu',en:'gym',speech:'ジム'},{r:'kiniku',en:'muscles',speech:'筋肉'},{r:'undou',en:'exercise',speech:'運動'},{r:'omori',en:'weights',speech:'重り'},{r:'hashiru',en:'to run',speech:'走る'},{r:'yasumu',en:'rest',speech:'休む'}],phrases:[
+    {r:'Jimu wa nanji made desu ka?',en:'What time is the gym open until?',speech:'ジムは何時までですか？'},
+    {r:'Shawaa wa arimasu ka?',en:'Are there showers?',speech:'シャワーはありますか？'},
+    {r:'Kono kikai wa dou tsukaimasu ka?',en:'How do I use this machine?',speech:'この機械はどう使いますか？'},
+    {r:'Motto karui omori wa arimasu ka?',en:'Do you have lighter weights?',speech:'もっと軽い重りはありますか？'},
+    {r:'Yasumitai desu.',en:'I want to rest.',speech:'休みたいです。'},
+    {r:'Ii toreeningu deshita.',en:'That was a good workout.',speech:'いいトレーニングでした。'}]},
+  {id:'home',icon:'🏠',name:'Home & Family',desc:'Simple Japanese for family life, meals and the house.',keywords:['home','family','house','kitchen','bedroom','mum','dad','kids'],words:[
+    {r:'ie',en:'house / home',speech:'家'},{r:'kazoku',en:'family',speech:'家族'},{r:'okaasan',en:'mum',speech:'お母さん'},{r:'otousan',en:'dad',speech:'お父さん'},{r:'gohan',en:'meal / rice',speech:'ご飯'},{r:'neru',en:'to sleep',speech:'寝る'}],phrases:[
+    {r:'Tadaima.',en:'I am home.',speech:'ただいま。'},
+    {r:'Gohan wa dekiteimasu ka?',en:'Is the meal ready?',speech:'ご飯はできていますか？'},
+    {r:'Kazoku to issho ni imasu.',en:'I am with my family.',speech:'家族と一緒にいます。'},
+    {r:'Mou neru jikan desu.',en:'It is time to sleep.',speech:'もう寝る時間です。'},
+    {r:'Okaasan wa doko desu ka?',en:'Where is Mum?',speech:'お母さんはどこですか？'},
+    {r:'Otesudai shimashou ka?',en:'Shall I help?',speech:'お手伝いしましょうか？'}]},
+  {id:'cinema',icon:'🎬',name:'Cinema',desc:'Buy movie tickets, find your seat and ask about times.',keywords:['cinema','movie','film','tickets','seat','popcorn','showtime'],words:[
+    {r:'eiga',en:'movie',speech:'映画'},{r:'seki',en:'seat',speech:'席'},{r:'jikan',en:'time',speech:'時間'},{r:'kippu',en:'ticket',speech:'切符'},{r:'popukoon',en:'popcorn',speech:'ポップコーン'},{r:'hajimaru',en:'to start',speech:'始まる'}],phrases:[
+    {r:'Kippu o futatsu kudasai.',en:'Two tickets, please.',speech:'切符を二つください。'},
+    {r:'Eiga wa nanji ni hajimarimasu ka?',en:'What time does the movie start?',speech:'映画は何時に始まりますか？'},
+    {r:'Seki wa doko desu ka?',en:'Where are the seats?',speech:'席はどこですか？'},
+    {r:'Popukoon wa arimasu ka?',en:'Do you have popcorn?',speech:'ポップコーンはありますか？'},
+    {r:'Kono eiga wa omoshiroi desu ka?',en:'Is this movie interesting?',speech:'この映画は面白いですか？'},
+    {r:'Mou hajimatteimasu ka?',en:'Has it already started?',speech:'もう始まっていますか？'}]},
+  {id:'weather',icon:'🌤️',name:'Weather',desc:'Talk about rain, heat, cold and what the day is like.',keywords:['weather','rain','sunny','wind','hot','cold','forecast'],words:[
+    {r:'tenki',en:'weather',speech:'天気'},{r:'ame',en:'rain',speech:'雨'},{r:'hare',en:'sunny',speech:'晴れ'},{r:'kaze',en:'wind',speech:'風'},{r:'samui',en:'cold',speech:'寒い'},{r:'atsui',en:'hot',speech:'暑い'}],phrases:[
+    {r:'Kyou no tenki wa dou desu ka?',en:'How is the weather today?',speech:'今日の天気はどうですか？'},
+    {r:'Ame ga furisou desu ne.',en:'It looks like it will rain.',speech:'雨が降りそうですね。'},
+    {r:'Totemo atsui desu.',en:'It is very hot.',speech:'とても暑いです。'},
+    {r:'Kyou wa samui desu ne.',en:'It is cold today, isn’t it?',speech:'今日は寒いですね。'},
+    {r:'Kasa wa irimasu ka?',en:'Do I need an umbrella?',speech:'傘はいりますか？'},
+    {r:'Kaze ga tsuyoi desu.',en:'The wind is strong.',speech:'風が強いです。'}]}
+];
+
+const topicPacks = [
+  {id:'topic-colours',icon:'🎨',name:'Colours',desc:'Learn the colours you will use when shopping, describing things and choosing items.',keywords:['colour','colors','colours','red','blue','green','black','white'],words:[
+    {r:'aka',en:'red',speech:'赤'},{r:'ao',en:'blue',speech:'青'},{r:'midori',en:'green',speech:'緑'},{r:'kiiro',en:'yellow',speech:'黄色'},{r:'kuro',en:'black',speech:'黒'},{r:'shiro',en:'white',speech:'白'}],phrases:[
+    {r:'Aka ga suki desu.',en:'I like red.',speech:'赤が好きです。'},{r:'Ao wa arimasu ka?',en:'Do you have blue?',speech:'青はありますか？'},{r:'Kuro o kudasai.',en:'Black, please.',speech:'黒をください。'},{r:'Hoka no iro wa arimasu ka?',en:'Do you have another colour?',speech:'他の色はありますか？'}]},
+  {id:'topic-food',icon:'🍱',name:'Food',desc:'Core food words for meals, tastes and talking about what you like.',keywords:['food','meal','eat','rice','meat','vegetables','fruit','hungry'],words:[
+    {r:'tabemono',en:'food',speech:'食べ物'},{r:'gohan',en:'rice / meal',speech:'ご飯'},{r:'niku',en:'meat',speech:'肉'},{r:'sakana',en:'fish',speech:'魚'},{r:'yasai',en:'vegetables',speech:'野菜'},{r:'kudamono',en:'fruit',speech:'果物'}],phrases:[
+    {r:'Onaka ga suita.',en:'I am hungry.',speech:'お腹が空いた。'},{r:'Kore wa oishii desu.',en:'This is delicious.',speech:'これは美味しいです。'},{r:'Sakana ga suki desu.',en:'I like fish.',speech:'魚が好きです。'},{r:'Nani o tabemasu ka?',en:'What will you eat?',speech:'何を食べますか？'}]},
+  {id:'topic-clothing',icon:'👕',name:'Clothing',desc:'Everyday clothing words plus size, colour and trying things on.',keywords:['clothing','clothes','shirt','pants','shoes','jacket','dress','wear'],words:[
+    {r:'fuku',en:'clothes',speech:'服'},{r:'shatsu',en:'shirt',speech:'シャツ'},{r:'zubon',en:'trousers / pants',speech:'ズボン'},{r:'kutsu',en:'shoes',speech:'靴'},{r:'jaketto',en:'jacket',speech:'ジャケット'},{r:'boushi',en:'hat',speech:'帽子'}],phrases:[
+    {r:'Kono shatsu ga suki desu.',en:'I like this shirt.',speech:'このシャツが好きです。'},{r:'Kutsu wa doko desu ka?',en:'Where are the shoes?',speech:'靴はどこですか？'},{r:'Motto ookii saizu wa arimasu ka?',en:'Do you have a bigger size?',speech:'もっと大きいサイズはありますか？'},{r:'Shichaku shite mo ii desu ka?',en:'Can I try it on?',speech:'試着してもいいですか？'}]},
+  {id:'topic-numbers',icon:'🔢',name:'Numbers',desc:'The numbers you need for prices, tickets, ages and quantities.',keywords:['numbers','number','one','two','three','count','age','quantity'],words:[
+    {r:'ichi',en:'one',speech:'一'},{r:'ni',en:'two',speech:'二'},{r:'san',en:'three',speech:'三'},{r:'yon',en:'four',speech:'四'},{r:'go',en:'five',speech:'五'},{r:'juu',en:'ten',speech:'十'}],phrases:[
+    {r:'Hitotsu kudasai.',en:'One, please.',speech:'一つください。'},{r:'Futatsu kudasai.',en:'Two, please.',speech:'二つください。'},{r:'San nin desu.',en:'There are three people.',speech:'三人です。'},{r:'Ikutsu desu ka?',en:'How many?',speech:'いくつですか？'}]},
+  {id:'topic-time',icon:'⏰',name:'Time',desc:'Ask the time and understand morning, afternoon and basic schedules.',keywords:['time','clock','hour','morning','afternoon','night','when'],words:[
+    {r:'ima',en:'now',speech:'今'},{r:'jikan',en:'time',speech:'時間'},{r:'asa',en:'morning',speech:'朝'},{r:'hiru',en:'daytime / noon',speech:'昼'},{r:'yoru',en:'night',speech:'夜'},{r:'nanji',en:'what time',speech:'何時'}],phrases:[
+    {r:'Ima nanji desu ka?',en:'What time is it now?',speech:'今何時ですか？'},{r:'Nanji ni hajimarimasu ka?',en:'What time does it start?',speech:'何時に始まりますか？'},{r:'Asa hachi ji desu.',en:'It is 8 in the morning.',speech:'朝八時です。'},{r:'Mata ashita.',en:'See you tomorrow.',speech:'また明日。'}]},
+  {id:'topic-days',icon:'📅',name:'Days & Dates',desc:'Today, tomorrow, yesterday and the days of the week.',keywords:['days','dates','today','tomorrow','yesterday','week','monday'],words:[
+    {r:'kyou',en:'today',speech:'今日'},{r:'ashita',en:'tomorrow',speech:'明日'},{r:'kinou',en:'yesterday',speech:'昨日'},{r:'getsuyoubi',en:'Monday',speech:'月曜日'},{r:'kinyoubi',en:'Friday',speech:'金曜日'},{r:'shuumatsu',en:'weekend',speech:'週末'}],phrases:[
+    {r:'Kyou wa nan youbi desu ka?',en:'What day is it today?',speech:'今日は何曜日ですか？'},{r:'Ashita aimashou.',en:'Let’s meet tomorrow.',speech:'明日会いましょう。'},{r:'Shuumatsu wa hima desu ka?',en:'Are you free this weekend?',speech:'週末は暇ですか？'},{r:'Kinyoubi ni ikimasu.',en:'I will go on Friday.',speech:'金曜日に行きます。'}]},
+  {id:'topic-family',icon:'👨‍👩‍👧',name:'Family',desc:'Talk about parents, siblings and your family.',keywords:['family','mum','mom','dad','father','mother','brother','sister'],words:[
+    {r:'kazoku',en:'family',speech:'家族'},{r:'okaasan',en:'mum / mother',speech:'お母さん'},{r:'otousan',en:'dad / father',speech:'お父さん'},{r:'ani',en:'older brother',speech:'兄'},{r:'ane',en:'older sister',speech:'姉'},{r:'kodomo',en:'child',speech:'子供'}],phrases:[
+    {r:'Kazoku wa go nin desu.',en:'There are five people in my family.',speech:'家族は五人です。'},{r:'Ani ga imasu.',en:'I have an older brother.',speech:'兄がいます。'},{r:'Kazoku to issho ni imasu.',en:'I am with my family.',speech:'家族と一緒にいます。'},{r:'Okaasan wa genki desu.',en:'Mum is well.',speech:'お母さんは元気です。'}]},
+  {id:'topic-body',icon:'🧍',name:'Body',desc:'Useful body words for sport, health and describing pain.',keywords:['body','head','hand','leg','arm','stomach','pain'],words:[
+    {r:'atama',en:'head',speech:'頭'},{r:'te',en:'hand',speech:'手'},{r:'ashi',en:'leg / foot',speech:'足'},{r:'ude',en:'arm',speech:'腕'},{r:'onaka',en:'stomach',speech:'お腹'},{r:'me',en:'eye',speech:'目'}],phrases:[
+    {r:'Atama ga itai desu.',en:'My head hurts.',speech:'頭が痛いです。'},{r:'Ashi ga itai desu.',en:'My leg hurts.',speech:'足が痛いです。'},{r:'Koko ga itai desu.',en:'It hurts here.',speech:'ここが痛いです。'},{r:'Daijoubu desu ka?',en:'Are you okay?',speech:'大丈夫ですか？'}]},
+  {id:'topic-feelings',icon:'🙂',name:'Feelings',desc:'Say how you feel in simple natural Japanese.',keywords:['feelings','emotions','happy','sad','tired','angry','nervous','excited'],words:[
+    {r:'ureshii',en:'happy / glad',speech:'嬉しい'},{r:'kanashii',en:'sad',speech:'悲しい'},{r:'tsukareta',en:'tired',speech:'疲れた'},{r:'kowai',en:'scared',speech:'怖い'},{r:'tanoshii',en:'fun / enjoyable',speech:'楽しい'},{r:'kinchou',en:'nervous / tension',speech:'緊張'}],phrases:[
+    {r:'Ureshii desu!',en:'I am happy!',speech:'嬉しいです！'},{r:'Chotto tsukareta.',en:'I am a little tired.',speech:'ちょっと疲れた。'},{r:'Kinchou shiteimasu.',en:'I am nervous.',speech:'緊張しています。'},{r:'Totemo tanoshii desu.',en:'It is very fun.',speech:'とても楽しいです。'}]},
+  {id:'topic-animals',icon:'🐾',name:'Animals',desc:'Common animal names for pets, zoos and everyday conversation.',keywords:['animals','animal','dog','cat','bird','fish','zoo','pet'],words:[
+    {r:'inu',en:'dog',speech:'犬'},{r:'neko',en:'cat',speech:'猫'},{r:'tori',en:'bird',speech:'鳥'},{r:'sakana',en:'fish',speech:'魚'},{r:'uma',en:'horse',speech:'馬'},{r:'doubutsu',en:'animal',speech:'動物'}],phrases:[
+    {r:'Inu ga suki desu.',en:'I like dogs.',speech:'犬が好きです。'},{r:'Neko wa kawaii desu.',en:'Cats are cute.',speech:'猫は可愛いです。'},{r:'Doubutsuen wa doko desu ka?',en:'Where is the zoo?',speech:'動物園はどこですか？'},{r:'Kore wa nan no doubutsu desu ka?',en:'What animal is this?',speech:'これは何の動物ですか？'}]},
+  {id:'topic-house',icon:'🛋️',name:'Around the House',desc:'Rooms and common things you use at home.',keywords:['house','home','kitchen','bedroom','bathroom','door','room'],words:[
+    {r:'ie',en:'home / house',speech:'家'},{r:'heya',en:'room',speech:'部屋'},{r:'daidokoro',en:'kitchen',speech:'台所'},{r:'ofuro',en:'bath',speech:'お風呂'},{r:'doa',en:'door',speech:'ドア'},{r:'isu',en:'chair',speech:'椅子'}],phrases:[
+    {r:'Heya wa doko desu ka?',en:'Where is the room?',speech:'部屋はどこですか？'},{r:'Daidokoro ni imasu.',en:'I am in the kitchen.',speech:'台所にいます。'},{r:'Doa o akete kudasai.',en:'Please open the door.',speech:'ドアを開けてください。'},{r:'Ie ni kaerimasu.',en:'I am going home.',speech:'家に帰ります。'}]},
+  {id:'topic-verbs',icon:'🏃',name:'Common Verbs',desc:'High-use action words that unlock lots of simple sentences.',keywords:['verbs','actions','go','come','eat','drink','see','do'],words:[
+    {r:'iku',en:'to go',speech:'行く'},{r:'kuru',en:'to come',speech:'来る'},{r:'taberu',en:'to eat',speech:'食べる'},{r:'nomu',en:'to drink',speech:'飲む'},{r:'miru',en:'to see / watch',speech:'見る'},{r:'suru',en:'to do',speech:'する'}],phrases:[
+    {r:'Kyou ikimasu.',en:'I am going today.',speech:'今日行きます。'},{r:'Mizu o nomimasu.',en:'I drink water.',speech:'水を飲みます。'},{r:'Eiga o mimasu.',en:'I watch a movie.',speech:'映画を見ます。'},{r:'Nani o shimasu ka?',en:'What will you do?',speech:'何をしますか？'}]},
+  {id:'topic-adjectives',icon:'✨',name:'Describing Things',desc:'Simple words for big, small, good, bad, fast and slow.',keywords:['adjectives','describe','big','small','good','bad','fast','slow'],words:[
+    {r:'ookii',en:'big',speech:'大きい'},{r:'chiisai',en:'small',speech:'小さい'},{r:'ii',en:'good',speech:'いい'},{r:'warui',en:'bad',speech:'悪い'},{r:'hayai',en:'fast',speech:'速い'},{r:'osoi',en:'slow / late',speech:'遅い'}],phrases:[
+    {r:'Kore wa ookii desu.',en:'This is big.',speech:'これは大きいです。'},{r:'Motto chiisai no wa arimasu ka?',en:'Do you have a smaller one?',speech:'もっと小さいのはありますか？'},{r:'Totemo ii desu.',en:'It is very good.',speech:'とてもいいです。'},{r:'Yukkuri onegaishimasu.',en:'Slowly, please.',speech:'ゆっくりお願いします。'}]},
+  {id:'topic-hobbies',icon:'🎸',name:'Hobbies',desc:'Talk about what you like doing in your free time.',keywords:['hobbies','hobby','music','games','reading','sport','free time'],words:[
+    {r:'ongaku',en:'music',speech:'音楽'},{r:'geemu',en:'game',speech:'ゲーム'},{r:'dokusho',en:'reading',speech:'読書'},{r:'ryokou',en:'travel',speech:'旅行'},{r:'supootsu',en:'sport',speech:'スポーツ'},{r:'shumi',en:'hobby',speech:'趣味'}],phrases:[
+    {r:'Shumi wa nan desu ka?',en:'What is your hobby?',speech:'趣味は何ですか？'},{r:'Ongaku ga suki desu.',en:'I like music.',speech:'音楽が好きです。'},{r:'Geemu o shimasu.',en:'I play games.',speech:'ゲームをします。'},{r:'Ryokou ga daisuki desu.',en:'I love travelling.',speech:'旅行が大好きです。'}]},
+  {id:'topic-work',icon:'💼',name:'Work',desc:'Basic workplace vocabulary and simple introductions.',keywords:['work','job','office','company','meeting','boss','coworker'],words:[
+    {r:'shigoto',en:'work / job',speech:'仕事'},{r:'kaisha',en:'company',speech:'会社'},{r:'kaigi',en:'meeting',speech:'会議'},{r:'joushi',en:'boss / supervisor',speech:'上司'},{r:'douryou',en:'coworker',speech:'同僚'},{r:'yasumi',en:'day off / rest',speech:'休み'}],phrases:[
+    {r:'Shigoto wa nan desu ka?',en:'What do you do for work?',speech:'仕事は何ですか？'},{r:'Kaisha ni ikimasu.',en:'I am going to the office/company.',speech:'会社に行きます。'},{r:'Kaigi wa nanji desu ka?',en:'What time is the meeting?',speech:'会議は何時ですか？'},{r:'Kyou wa yasumi desu.',en:'I have the day off today.',speech:'今日は休みです。'}]},
+  {id:'topic-nature',icon:'🌿',name:'Nature',desc:'Mountains, rivers, trees and simple outdoor Japanese.',keywords:['nature','mountain','river','tree','flower','forest','outdoors'],words:[
+    {r:'yama',en:'mountain',speech:'山'},{r:'kawa',en:'river',speech:'川'},{r:'ki',en:'tree',speech:'木'},{r:'hana',en:'flower',speech:'花'},{r:'mori',en:'forest',speech:'森'},{r:'sora',en:'sky',speech:'空'}],phrases:[
+    {r:'Yama ga kirei desu.',en:'The mountain is beautiful.',speech:'山が綺麗です。'},{r:'Kawa wa doko desu ka?',en:'Where is the river?',speech:'川はどこですか？'},{r:'Mori ni ikitai desu.',en:'I want to go to the forest.',speech:'森に行きたいです。'},{r:'Sora ga aoi desu.',en:'The sky is blue.',speech:'空が青いです。'}]},
+  {id:'topic-tech',icon:'📱',name:'Technology',desc:'Phone, internet, charging and Wi-Fi words for travel and daily life.',keywords:['technology','phone','internet','wifi','charger','battery','computer'],words:[
+    {r:'sumaho',en:'smartphone',speech:'スマホ'},{r:'denwa',en:'phone / telephone',speech:'電話'},{r:'intaanetto',en:'internet',speech:'インターネット'},{r:'juuden',en:'charging',speech:'充電'},{r:'batterii',en:'battery',speech:'バッテリー'},{r:'pasokon',en:'computer',speech:'パソコン'}],phrases:[
+    {r:'Wi-Fi wa arimasu ka?',en:'Is there Wi-Fi?',speech:'ワイファイはありますか？'},{r:'Juuden shite mo ii desu ka?',en:'Can I charge my phone?',speech:'充電してもいいですか？'},{r:'Denwa o tsukatte mo ii desu ka?',en:'Can I use the phone?',speech:'電話を使ってもいいですか？'},{r:'Batterii ga nai desu.',en:'My battery is dead / I have no battery.',speech:'バッテリーがないです。'}]},
+  {id:'topic-manners',icon:'🙏',name:'Polite Essentials',desc:'The phrases that make everyday Japanese easier and more polite.',keywords:['polite','manners','please','thanks','sorry','excuse me','welcome'],words:[
+    {r:'arigatou',en:'thank you',speech:'ありがとう'},{r:'sumimasen',en:'excuse me / sorry',speech:'すみません'},{r:'onegaishimasu',en:'please',speech:'お願いします'},{r:'douzo',en:'please / go ahead',speech:'どうぞ'},{r:'gomen nasai',en:'I am sorry',speech:'ごめんなさい'},{r:'daijoubu',en:'okay / no thanks',speech:'大丈夫'}],phrases:[
+    {r:'Arigatou gozaimasu.',en:'Thank you very much.',speech:'ありがとうございます。'},{r:'Sumimasen.',en:'Excuse me / sorry.',speech:'すみません。'},{r:'Onegaishimasu.',en:'Please.',speech:'お願いします。'},{r:'Daijoubu desu.',en:'I am okay / No thank you.',speech:'大丈夫です。'}]}
+];
+
+function allSearchPacks(){ return [...topicPacks,...situations]; }
+function findSearchPack(id){ return allSearchPacks().find(x=>x.id===id); }
+
+let activeSituationId=null;
+let situationQuery='';
+const savedSituationPhrases=new Set(JSON.parse(localStorage.getItem('moshiSavedSituationPhrases')||'[]'));
+
+const sceneSvg = (type) => {
+ const common = `viewBox="0 0 470 930" preserveAspectRatio="xMidYMid slice"`;
+ const skies = {
+  sunrise:['#ff9f7a','#6f6ab6','#1e2849'], station:['#51607d','#273249','#131620'], cafe:['#c98e63','#6d4741','#1a1620'], market:['#e68b6f','#615b87','#171b28'], ramen:['#f4a85d','#8f3f45','#21141a'], street:['#6ba6bb','#4f5d89','#1f2232'], night:['#384d7e','#15182f','#090a15'], city:['#9e72af','#475279','#181a28']
+ };
+ const c=skies[type]||skies.city;
+ let detail='';
+ if(type==='station') detail=`<rect x="40" y="340" width="390" height="230" rx="12" fill="#1e2431"/><rect x="63" y="372" width="145" height="110" rx="7" fill="#87a5b4" opacity=".55"/><rect x="235" y="372" width="170" height="110" rx="7" fill="#87a5b4" opacity=".45"/><path d="M0 615 L470 560 L470 930 L0 930Z" fill="#1a1c24"/><path d="M50 700 L420 635" stroke="#d8d9df" stroke-width="5" opacity=".35"/>`;
+ else if(type==='cafe') detail=`<rect x="35" y="380" width="400" height="220" rx="18" fill="#402925"/><rect x="70" y="420" width="125" height="125" rx="8" fill="#f2c98d" opacity=".58"/><rect x="242" y="420" width="125" height="125" rx="8" fill="#f2c98d" opacity=".42"/><ellipse cx="235" cy="740" rx="165" ry="58" fill="#281b1b"/><rect x="225" y="690" width="20" height="155" fill="#281b1b"/>`;
+ else if(type==='market') detail=`<path d="M0 430 L130 330 L235 430 L360 315 L470 420 L470 930 L0 930Z" fill="#51354a"/><rect x="40" y="490" width="155" height="235" rx="8" fill="#262233"/><rect x="275" y="465" width="150" height="250" rx="8" fill="#2a2434"/><circle cx="105" cy="560" r="30" fill="#ffcf5b" opacity=".65"/><circle cx="340" cy="550" r="24" fill="#ff7a67" opacity=".65"/>`;
+ else if(type==='ramen') detail=`<ellipse cx="235" cy="650" rx="185" ry="95" fill="#40221f"/><ellipse cx="235" cy="628" rx="154" ry="65" fill="#dd9f50"/><path d="M105 610 C150 560 195 660 235 600 C275 550 315 660 365 595" stroke="#ffe0a0" stroke-width="8" fill="none"/><circle cx="180" cy="620" r="22" fill="#f6e0b0"/><rect x="270" y="570" width="40" height="85" rx="8" fill="#924647"/>`;
+ else if(type==='street') detail=`<rect x="20" y="330" width="130" height="300" fill="#2f3d54"/><rect x="320" y="290" width="130" height="345" fill="#354055"/><path d="M185 350 L285 350 L325 930 L140 930Z" fill="#232633"/><path d="M235 410 L235 930" stroke="#d8d7ca" stroke-width="6" stroke-dasharray="28 24" opacity=".45"/>`;
+ else if(type==='night') detail=`<circle cx="350" cy="170" r="50" fill="#e9e1c9" opacity=".85"/><rect x="30" y="340" width="140" height="380" fill="#101526"/><rect x="190" y="300" width="105" height="420" fill="#11182a"/><rect x="315" y="370" width="125" height="350" fill="#0f1422"/><g fill="#ffd787" opacity=".65"><rect x="55" y="390" width="18" height="30"/><rect x="95" y="460" width="18" height="30"/><rect x="216" y="350" width="18" height="30"/><rect x="340" y="430" width="18" height="30"/></g>`;
+ else detail=`<circle cx="345" cy="230" r="75" fill="#ffd7a0" opacity=".25"/><path d="M0 520 Q120 430 235 510 T470 490 L470 930 L0 930Z" fill="#25324a"/><rect x="70" y="390" width="75" height="300" fill="#30344b"/><rect x="305" y="350" width="92" height="340" fill="#2b3148"/>`;
+ return `<svg ${common} xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset=".52" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient><filter id="b"><feGaussianBlur stdDeviation="15"/></filter></defs><rect width="470" height="930" fill="url(#g)"/><circle cx="90" cy="220" r="100" fill="#fff" opacity=".08" filter="url(#b)"/>${detail}<rect x="0" y="0" width="470" height="930" fill="url(#g)" opacity=".08"/></svg>`;
+}
+
+const feed = document.getElementById('feed');
+const saved = new Set(JSON.parse(localStorage.getItem('moshiSaved') || '[]'));
+const completedQuizzes = new Set(JSON.parse(localStorage.getItem('moshiCompletedQuizzes') || '[]'));
+const completedSpeech = new Set(JSON.parse(localStorage.getItem('moshiCompletedSpeech') || '[]'));
+const completedReviews = new Set(JSON.parse(localStorage.getItem('moshiCompletedReviews') || '[]'));
+// Review spacing deliberately varies between 10 and 20 lesson cards. The first
+// checkpoint is at 10 so the feature appears even in this small prototype.
+const reviewCadence = [10,15,12,18,11,17,14,20,13,16,19];
+const ownedAvatars = new Set(JSON.parse(localStorage.getItem('moshiOwnedAvatars') || '["classic"]'));
+let equippedAvatar = localStorage.getItem('moshiEquippedAvatar') || 'classic';
+let completed = Number(localStorage.getItem('moshiCompleted') || 0);
+let xp = Number(localStorage.getItem('moshiXp') || 120);
+let lifetimeXp = Number(localStorage.getItem('moshiLifetimeXp') || 0);
+
+const statsDateKey=()=>new Date().toLocaleDateString('en-CA');
+let learningStats=(()=>{try{return JSON.parse(localStorage.getItem('manabuLearningStats')||'{}')}catch(e){return {}}})();
+learningStats.totalSeconds=Number(learningStats.totalSeconds||0);
+// Keep the existing totalWords/todayWords keys as the encountered vocabulary store so
+// older prototype data migrates cleanly into the Encountered vs Learned system.
+learningStats.totalWords=Array.isArray(learningStats.totalWords)?learningStats.totalWords:[];
+learningStats.learnedWords=Array.isArray(learningStats.learnedWords)?learningStats.learnedWords:[];
+if(learningStats.todayDate!==statsDateKey()){
+  learningStats.todayDate=statsDateKey();
+  learningStats.todayWords=[];
+  learningStats.todayLearned=[];
+}else{
+  learningStats.todayWords=Array.isArray(learningStats.todayWords)?learningStats.todayWords:[];
+  learningStats.todayLearned=Array.isArray(learningStats.todayLearned)?learningStats.todayLearned:[];
+}
+let sessionSeconds=0;
+let exposureObserver=null;
+function normalizeLearningWord(x){return String(x||'').trim().toLowerCase()}
+function persistLearningStats(){localStorage.setItem('manabuLearningStats',JSON.stringify(learningStats))}
+function ensureStatsDay(){
+  if(learningStats.todayDate!==statsDateKey()){
+    learningStats.todayDate=statsDateKey();
+    learningStats.todayWords=[];
+    learningStats.todayLearned=[];
+  }
+}
+function trackWords(words){
+  ensureStatsDay();
+  const clean=(words||[]).map(normalizeLearningWord).filter(Boolean);
+  clean.forEach(w=>{if(!learningStats.totalWords.includes(w))learningStats.totalWords.push(w);if(!learningStats.todayWords.includes(w))learningStats.todayWords.push(w)});
+  persistLearningStats(); updateLearningStatsUi();
+}
+function markWordsLearned(words,{countToday=true}={}){
+  ensureStatsDay();
+  const clean=(words||[]).map(normalizeLearningWord).filter(Boolean);
+  let added=0;
+  clean.forEach(w=>{
+    // A learned word must also count as encountered.
+    if(!learningStats.totalWords.includes(w))learningStats.totalWords.push(w);
+    if(!learningStats.learnedWords.includes(w)){learningStats.learnedWords.push(w);added++}
+    if(countToday && !learningStats.todayLearned.includes(w))learningStats.todayLearned.push(w);
+  });
+  persistLearningStats(); updateLearningStatsUi();
+  return added;
+}
+function formatDuration(sec){sec=Math.max(0,Math.floor(sec||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),ss=sec%60;if(h)return `${h}h ${m}m`;if(m)return `${m}m ${ss}s`;return `${ss}s`}
+function updateLearningStatsUi(){
+  const a=document.getElementById('sessionTimeStat'),b=document.getElementById('totalTimeStat'),c=document.getElementById('wordsTodayStat'),d=document.getElementById('totalWordsStat'),e=document.getElementById('learnedTodayStat'),f=document.getElementById('learnedWordsStat'),g=document.getElementById('masteryRateStat');
+  const mastery=learningStats.totalWords.length?Math.round((learningStats.learnedWords.length/learningStats.totalWords.length)*100):0;
+  if(a)a.textContent=formatDuration(sessionSeconds);
+  if(b)b.textContent=formatDuration(learningStats.totalSeconds);
+  if(c)c.textContent=learningStats.todayWords.length;
+  if(d)d.textContent=learningStats.totalWords.length;
+  if(e)e.textContent=learningStats.todayLearned.length;
+  if(f)f.textContent=learningStats.learnedWords.length;
+  if(g)g.textContent=`${mastery}%`;
+}
+setInterval(()=>{if(!document.hidden){sessionSeconds++;learningStats.totalSeconds++;if(sessionSeconds%5===0)persistLearningStats();updateLearningStatsUi()}},1000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)persistLearningStats()});
+window.addEventListener('beforeunload',persistLearningStats);
+function setupLessonExposureTracking(){
+  if(exposureObserver)exposureObserver.disconnect();
+  if(!('IntersectionObserver' in window))return;
+  exposureObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){const l=lessons.find(x=>x.id===entry.target.dataset.id);if(l)trackWords(l.words.map(w=>w[0]))}}),{root:feed,threshold:.6});
+  feed.querySelectorAll('.lesson[data-id]').forEach(el=>exposureObserver.observe(el));
+}
+
+const friendDirectory = [
+  {id:'maya', name:'Maya', handle:'@maya_jp', avatar:'🌸', level:'Beginner', bio:'Learning for a Japan trip', online:true},
+  {id:'ren', name:'Ren', handle:'@ren_speaks', avatar:'🦊', level:'Intermediate', bio:'Likes casual conversation practice', online:true},
+  {id:'sora', name:'Sora', handle:'@sora_studies', avatar:'🌙', level:'Beginner', bio:'Practising a little every day', online:false},
+  {id:'kai', name:'Kai', handle:'@kai_nihongo', avatar:'🌊', level:'Beginner', bio:'Food and travel Japanese', online:true},
+  {id:'emi', name:'Emi', handle:'@emi_talks', avatar:'🍙', level:'Intermediate', bio:'Happy to help beginners practise', online:false},
+  {id:'leo', name:'Leo', handle:'@leo_in_japan', avatar:'🎮', level:'Beginner', bio:'Learning Japanese for gaming', online:true}
+];
+const tutor = {id:'moshi-tutor', name:'Manabu Tutor', handle:'@manabu_tutor', avatar:'🤖', level:'Tutor', bio:'Ask me Japanese words and phrases', online:true, isBot:true};
+const tutorWords = [
+  {en:'hungry',romaji:'onaka ga suita',meaning:'I’m hungry',cat:'everyday',example:'Onaka ga suita. Nani ka tabetai. — I’m hungry. I want to eat something.'},
+  {en:'thirsty',romaji:'nodo ga kawaita',meaning:'I’m thirsty',cat:'everyday',example:'Nodo ga kawaita. Mizu kudasai. — I’m thirsty. Water please.'},
+  {en:'tired',romaji:'tsukareta',meaning:'I’m tired',cat:'feelings',example:'Tsukareta! Sukoshi yasumitai. — I’m tired! I want to rest a little.'},
+  {en:'happy',romaji:'ureshii',meaning:'happy / glad',cat:'feelings',example:'Ureshii! — I’m happy!'},
+  {en:'sad',romaji:'kanashii',meaning:'sad',cat:'feelings',example:'Chotto kanashii. — I’m a little sad.'},
+  {en:'delicious',romaji:'oishii',meaning:'delicious / tasty',cat:'food',example:'Kore wa oishii! — This is delicious!'},
+  {en:'water',romaji:'mizu',meaning:'water',cat:'food',example:'Mizu kudasai. — Water please.'},
+  {en:'rice',romaji:'gohan',meaning:'rice / a meal',cat:'food',example:'Gohan o tabemasu. — I eat a meal / rice.'},
+  {en:'food',romaji:'tabemono',meaning:'food',cat:'food',example:'Nihon no tabemono ga suki desu. — I like Japanese food.'},
+  {en:'eat',romaji:'taberu',meaning:'to eat',cat:'food',example:'Sushi o taberu. — Eat sushi.'},
+  {en:'drink',romaji:'nomu',meaning:'to drink',cat:'food',example:'Mizu o nomu. — Drink water.'},
+  {en:'please',romaji:'kudasai',meaning:'please / please give me',cat:'travel',example:'Mizu kudasai. — Water please.'},
+  {en:'where',romaji:'doko',meaning:'where',cat:'travel',example:'Toire wa doko desu ka? — Where is the toilet?'},
+  {en:'toilet',romaji:'toire',meaning:'toilet / restroom',cat:'travel',example:'Toire wa doko desu ka? — Where is the toilet?'},
+  {en:'station',romaji:'eki',meaning:'station',cat:'travel',example:'Eki wa doko desu ka? — Where is the station?'},
+  {en:'hotel',romaji:'hoteru',meaning:'hotel',cat:'travel',example:'Hoteru wa doko desu ka? — Where is the hotel?'},
+  {en:'how much',romaji:'ikura',meaning:'how much',cat:'travel',example:'Kore wa ikura desu ka? — How much is this?'},
+  {en:'this',romaji:'kore',meaning:'this',cat:'everyday',example:'Kore wa nan desu ka? — What is this?'},
+  {en:'that',romaji:'sore',meaning:'that',cat:'everyday',example:'Sore wa nan desu ka? — What is that?'},
+  {en:'what',romaji:'nani',meaning:'what',cat:'everyday',example:'Nani ga suki desu ka? — What do you like?'},
+  {en:'yes',romaji:'hai',meaning:'yes',cat:'everyday',example:'Hai, daijoubu desu. — Yes, I’m okay.'},
+  {en:'no',romaji:'iie',meaning:'no',cat:'everyday',example:'Iie, arigatou. — No, thank you.'},
+  {en:'hello',romaji:'konnichiwa',meaning:'hello / good afternoon',cat:'greetings',example:'Konnichiwa! Genki desu ka? — Hello! How are you?'},
+  {en:'good morning',romaji:'ohayou',meaning:'good morning (casual)',cat:'greetings',example:'Ohayou! — Morning!'},
+  {en:'good night',romaji:'oyasumi',meaning:'good night (casual)',cat:'greetings',example:'Oyasumi! Mata ashita. — Good night! See you tomorrow.'},
+  {en:'thank you',romaji:'arigatou',meaning:'thank you',cat:'greetings',example:'Arigatou! — Thank you!'},
+  {en:'sorry',romaji:'gomen nasai',meaning:'I’m sorry',cat:'greetings',example:'Gomen nasai. — I’m sorry.'},
+  {en:'excuse me',romaji:'sumimasen',meaning:'excuse me / sorry',cat:'travel',example:'Sumimasen, eki wa doko desu ka? — Excuse me, where is the station?'},
+  {en:'okay',romaji:'daijoubu',meaning:'okay / alright',cat:'everyday',example:'Daijoubu desu. — I’m okay / It’s alright.'},
+  {en:'understand',romaji:'wakaru',meaning:'to understand',cat:'everyday',example:'Wakarimasu. — I understand.'},
+  {en:'i do not understand',romaji:'wakarimasen',meaning:'I don’t understand',cat:'everyday',example:'Sumimasen, wakarimasen. — Sorry, I don’t understand.'},
+  {en:'slowly',romaji:'yukkuri',meaning:'slowly',cat:'everyday',example:'Yukkuri onegaishimasu. — Slowly, please.'},
+  {en:'again',romaji:'mou ichido',meaning:'one more time / again',cat:'everyday',example:'Mou ichido onegaishimasu. — One more time, please.'},
+  {en:'friend',romaji:'tomodachi',meaning:'friend',cat:'everyday',example:'Tomodachi desu. — We are friends / They are my friend.'},
+  {en:'football',romaji:'sakkaa',meaning:'football / soccer',cat:'sport',example:'Sakkaa ga suki desu. — I like football.'},
+  {en:'game',romaji:'shiai',meaning:'match / game',cat:'sport',example:'Kyou wa shiai desu. — There is a game today.'},
+  {en:'good luck',romaji:'ganbatte',meaning:'good luck / do your best',cat:'sport',example:'Ganbatte! — Good luck! / Do your best!'}
+];
+const friendIds = new Set(JSON.parse(localStorage.getItem('moshiFriends') || '["maya","ren"]'));
+let chats = JSON.parse(localStorage.getItem('moshiChats') || '{}');
+let activeFriendId = null;
+let chatLanguage = 'JP';
+const defaultChats = {
+  maya:[
+    {from:'them',lang:'JP',text:'Konnichiwa! Genki desu ka?',translation:'Hi! How are you?',time:'4:42'},
+    {from:'me',lang:'JP',text:'Genki desu! Arigatou.',translation:'I’m good! Thank you.',time:'4:43'},
+    {from:'them',lang:'EN',text:'Nice! What phrase are you learning today?',time:'4:44'}
+  ],
+  ren:[
+    {from:'them',lang:'EN',text:'Want to practise a little Japanese?',time:'3:18'},
+    {from:'them',lang:'JP',text:'Daijoubu? Hajimemashou!',translation:'All good? Let’s start!',time:'3:19'}
+  ]
+};
+if(!Array.isArray(chats[tutor.id])||!chats[tutor.id].length){
+  chats[tutor.id]=[
+    {from:'them',lang:'EN',text:'Konnichiwa! I’m Manabu Tutor 🤖 Ask me a Japanese word or phrase you want to learn. I’ll keep Japanese in romaji for you.',time:'now'},
+    {from:'them',lang:'EN',text:'Try: “How do I say hungry?”, “What does daijoubu mean?”, or “Teach me 5 food words.”',time:'now'}
+  ];
+}
+Object.keys(defaultChats).forEach(id=>{if(!Array.isArray(chats[id])||!chats[id].length) chats[id]=defaultChats[id]});
+localStorage.setItem('moshiChats',JSON.stringify(chats));
+
+const avatarShop = [
+  {id:'classic', icon:'M', name:'Manabu Classic', price:0},
+  {id:'sakura', icon:'🌸', name:'Sakura', price:80},
+  {id:'ramen', icon:'🍜', name:'Ramen Run', price:120},
+  {id:'sushi', icon:'🍣', name:'Sushi Sensei', price:100},
+  {id:'onigiri', icon:'🍙', name:'Onigiri', price:140},
+  {id:'matcha', icon:'🍵', name:'Matcha', price:180},
+  {id:'shiba', icon:'🐕', name:'Shiba', price:200},
+  {id:'ninja', icon:'🥷', name:'Ninja', price:160},
+  {id:'fox', icon:'🦊', name:'Kitsune', price:220},
+  {id:'torii', icon:'⛩️', name:'Torii', price:240},
+  {id:'wave', icon:'🌊', name:'Great Wave', price:260},
+  {id:'fuji', icon:'🗻', name:'Fuji', price:300},
+  {id:'tanuki', icon:'🦝', name:'Tanuki', price:320},
+  {id:'moon', icon:'🌙', name:'Tsuki', price:360},
+  {id:'gaming', icon:'🎮', name:'Arcade', price:400},
+  {id:'cat', icon:'🐱', name:'Lucky Cat', price:450},
+  {id:'dragon', icon:'🐉', name:'Ryuu', price:500},
+  {id:'trophy', icon:'🏆', name:'Manabu Master', price:600}
+];
+const LEVELS = [
+  {name:'Beginner', icon:'🌱', min:0},
+  {name:'Conversational Beginner', icon:'🗣️', min:500},
+  {name:'Intermediate', icon:'🔥', min:1250},
+  {name:'Upper Intermediate', icon:'⚡', min:2500},
+  {name:'Advanced', icon:'🗾', min:5000},
+  {name:'Manabu Master', icon:'🏆', min:7500}
+];
+// One-time migration for people who used the shop before lifetime XP existed.
+if(!localStorage.getItem('moshiLifetimeXp')){
+  const previouslySpent = avatarShop.filter(a=>a.price>0 && ownedAvatars.has(a.id)).reduce((sum,a)=>sum+a.price,0);
+  lifetimeXp = xp + previouslySpent;
+  localStorage.setItem('moshiLifetimeXp',lifetimeXp);
+}
+function levelInfo(total=lifetimeXp){
+  let index=0;
+  for(let i=0;i<LEVELS.length;i++) if(total>=LEVELS[i].min) index=i;
+  const current=LEVELS[index], next=LEVELS[index+1]||null;
+  const progress=next?Math.max(0,Math.min(100,Math.round(((total-current.min)/(next.min-current.min))*100))):100;
+  return {index,current,next,progress,toNext:next?Math.max(0,next.min-total):0};
+}
+document.getElementById('xpCount').textContent = xp;
+
+function reviewCandidate(previousLessons, reviewIndex){
+  // Prefer useful content words over tiny grammar particles when possible.
+  const blocked = new Set(['wa','o','desu']);
+  const eligible=[];
+  previousLessons.forEach(l=>l.words.forEach(([word,meaning])=>{
+    if(!blocked.has(word.toLowerCase())) eligible.push({word,meaning,lesson:l});
+  }));
+  if(!eligible.length) return null;
+  // Stable selection means the review does not change every time the page rerenders.
+  return eligible[(reviewIndex*5 + 3) % eligible.length];
+}
+
+function reviewOptions(target, previousLessons){
+  const pool=[];
+  previousLessons.forEach(l=>l.words.forEach(([,meaning])=>{
+    if(meaning!==target.meaning && !pool.includes(meaning)) pool.push(meaning);
+  }));
+  const picks=[];
+  for(let i=0;i<pool.length && picks.length<3;i++){
+    const candidate=pool[(i*4 + target.word.length) % pool.length];
+    if(candidate && !picks.includes(candidate)) picks.push(candidate);
+  }
+  while(picks.length<3) picks.push(['where','thank you','delicious'][picks.length]);
+  const options=[target.meaning,...picks.slice(0,3)];
+  // Stable rotation instead of random shuffling avoids answer positions changing on rerender.
+  const shift=(target.word.length + target.meaning.length) % 4;
+  return options.slice(shift).concat(options.slice(0,shift));
+}
+
+function buildFeedItems(visible,filter){
+  if(filter!=='all') return visible.map(l=>({type:'lesson',lesson:l}));
+  const items=[], previous=[];
+  let sinceReview=0, reviewIndex=0, targetGap=reviewCadence[0];
+  visible.forEach((l,i)=>{
+    items.push({type:'lesson',lesson:l});
+    previous.push(l);
+    sinceReview++;
+    if(sinceReview>=targetGap){
+      const target=reviewCandidate(previous,reviewIndex);
+      if(target){
+        items.push({type:'review',id:`review-${reviewIndex}-${l.id}`,target,sourceLesson:target.lesson,options:reviewOptions(target,previous)});
+      }
+      reviewIndex++;
+      sinceReview=0;
+      targetGap=reviewCadence[reviewIndex % reviewCadence.length];
+    }
+  });
+  return items;
+}
+
+function reviewCardHtml(r){
+  const done=completedReviews.has(r.id);
+  return `<article class="lesson review-card" data-review-id="${r.id}">
+    <div class="review-mark">↻ Memory check</div>
+    <div class="review-inner">
+      <div class="review-eyebrow">You encountered this earlier</div>
+      <div class="review-word">${r.target.word}</div>
+      <div class="review-prompt">Do you still remember what it means?</div>
+      <div class="review-choices">${r.options.map(o=>`<button class="review-choice" data-review="${r.id}" data-answer="${encodeURIComponent(o)}" ${done?'disabled':''}>${o}</button>`).join('')}</div>
+      <div class="review-result" id="review-result-${r.id}">${done?'✓ Remembered — nice work.':''}</div>
+      <div class="review-source">From: ${r.sourceLesson.phrase}</div>
+      ${done?'<div class="review-done-pill">✓ Review XP already earned</div>':''}
+    </div>
+  </article>`;
+}
+
+function renderFeed(filter='all'){
+  const visible=lessons.filter(l=>filter==='all'||l.level===filter||l.level==='all');
+  const items=buildFeedItems(visible,filter);
+  // Migrate any memory checks completed before this feature existed into total learned
+  // vocabulary without pretending they were learned today.
+  if(filter==='all'){
+    const historicalLearned=items.filter(x=>x.type==='review'&&completedReviews.has(x.id)).map(x=>x.target.word);
+    if(historicalLearned.length)markWordsLearned(historicalLearned,{countToday:false});
+  }
+  let lessonIndex=0;
+  feed.innerHTML=items.map(item=>{
+    if(item.type==='review') return reviewCardHtml(item);
+    const l=item.lesson, i=lessonIndex++;
+    return `<article class="lesson" data-id="${l.id}">
+      <div class="scene"><div class="scene-art">${sceneSvg(l.scene)}</div></div>
+      <div class="badge">${l.tag}</div>
+      <div class="float-jp">${l.float}</div>
+      ${i===0?'<div class="swipe-hint">SWIPE<br/>↑</div>':''}
+      <div class="lesson-ui">
+        <div class="context"><span class="context-dot"></span> Hear it, then say it out loud</div>
+        <h2 class="jp-line">${l.phrase}</h2>
+        <div class="translation" data-translation="${l.id}">${l.en}</div>
+        <div class="tokens">${l.words.map(([word,en])=>`<button class="token" data-meaning="${en}">${word}</button>`).join('')}</div>
+        <div class="explain">${l.explain}</div>
+      </div>
+      <aside class="actions" aria-label="Lesson actions">
+        <div class="action"><button class="action-btn speak" data-id="${l.id}" aria-label="Play audio">🔊</button><span>Listen</span></div>
+        <div class="action"><button class="action-btn speech-btn pronounce ${completedSpeech.has(l.id)?'completed':''}" data-id="${l.id}" aria-label="Practice pronunciation">🎙</button><span>${completedSpeech.has(l.id)?'Spoken':'Speak'}</span></div>
+        <div class="action"><button class="action-btn translate" data-id="${l.id}" aria-label="Hide or show translation">EN</button><span>Meaning</span></div>
+        <div class="action"><button class="action-btn save ${saved.has(l.id)?'saved':''}" data-id="${l.id}" aria-label="Save phrase">♡</button><span>Save</span></div>
+        <div class="action"><button class="action-btn quiz-btn quiz ${completedQuizzes.has(l.id)?'completed':''}" data-id="${l.id}" aria-label="Quiz">✓</button><span>${completedQuizzes.has(l.id)?'Done':'Quiz'}</span></div>
+      </aside>
+    </article>`;
+  }).join('');
+  attachLessonEvents();
+  attachReviewEvents(items.filter(x=>x.type==='review'));
+  setupLessonExposureTracking();
+}
+
+function attachReviewEvents(reviewItems){
+  document.querySelectorAll('.review-choice').forEach(btn=>btn.addEventListener('click',()=>{
+    const r=reviewItems.find(x=>x.id===btn.dataset.review);
+    if(!r) return;
+    const val=decodeURIComponent(btn.dataset.answer);
+    const card=btn.closest('.review-card');
+    const result=card.querySelector(`#review-result-${r.id}`);
+    card.querySelectorAll('.review-choice').forEach(x=>x.classList.remove('wrong','correct'));
+    if(val===r.target.meaning){
+      btn.classList.add('correct');
+      card.querySelectorAll('.review-choice').forEach(x=>x.disabled=true);
+      if(!completedReviews.has(r.id)){
+        completedReviews.add(r.id);
+        localStorage.setItem('moshiCompletedReviews',JSON.stringify([...completedReviews]));
+        const newlyLearned=markWordsLearned([r.target.word]);
+        addXp(5);
+        result.textContent=newlyLearned?'✓ Learned! You remembered it. +5 XP':'✓ You remembered it! +5 XP';
+        flash(newlyLearned?`+5 XP · ${r.target.word} moved to Learned!`:'+5 XP · Memory check!');
+      }else{
+        markWordsLearned([r.target.word],{countToday:false});
+        result.textContent='✓ You remembered it again.';
+      }
+      setTimeout(()=>{
+        const next=card.nextElementSibling;
+        if(next) next.scrollIntoView({behavior:'smooth',block:'start'});
+      },850);
+    }else{
+      btn.classList.add('wrong');
+      result.textContent='Not quite — have another go.';
+    }
+  }));
+}
+
+function attachLessonEvents(){
+  document.querySelectorAll('.token').forEach(btn=>btn.addEventListener('click',()=>{
+    const open=btn.dataset.open==='true';
+    document.querySelectorAll('.token').forEach(b=>{b.dataset.open='false';b.textContent=b.dataset.jp||b.textContent.split(' · ')[0]});
+    if(!btn.dataset.jp) btn.dataset.jp=btn.textContent;
+    if(!open){btn.dataset.open='true';btn.textContent=`${btn.dataset.jp} · ${btn.dataset.meaning}`}
+  }));
+  document.querySelectorAll('.speak').forEach(btn=>btn.addEventListener('click',()=>{
+    const l=lessons.find(x=>x.id===btn.dataset.id); speakJapanese(l.speech); flash('Playing Japanese audio');
+  }));
+  document.querySelectorAll('.translate').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelector(`[data-translation="${btn.dataset.id}"]`).classList.toggle('hidden');
+  }));
+  document.querySelectorAll('.save').forEach(btn=>btn.addEventListener('click',()=>toggleSave(btn.dataset.id,btn)));
+  document.querySelectorAll('.pronounce').forEach(btn=>btn.addEventListener('click',()=>openPronunciation(btn.dataset.id)));
+  document.querySelectorAll('.quiz').forEach(btn=>btn.addEventListener('click',()=>openQuiz(btn.dataset.id)));
+}
+
+function speakJapanese(text){
+  if(!('speechSynthesis' in window)){flash('Speech is not supported in this browser');return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=.82;u.pitch=1;speechSynthesis.speak(u);
+}
+
+function toggleSave(id,btn){
+  if(saved.has(id)){saved.delete(id);btn.classList.remove('saved');flash('Removed from saved')}
+  else{saved.add(id);btn.classList.add('saved');flash('Saved to your vocab')}
+  localStorage.setItem('moshiSaved',JSON.stringify([...saved]));
+}
+
+const toast=document.getElementById('toast');
+let toastTimer;
+function flash(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),1500)}
+
+const sheet=document.getElementById('sheet');
+const sheetCard=document.getElementById('sheetCard');
+function openSheet(html){sheetCard.innerHTML=`<div class="sheet-handle"></div>${html}`;sheet.classList.add('open');sheet.setAttribute('aria-hidden','false')}
+function closeSheet(){sheet.classList.remove('open');sheet.setAttribute('aria-hidden','true')}
+sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
+
+
+function normalizeJapanese(text){
+  return (text||'').normalize('NFKC').toLowerCase().replace(/[\s。、！？!?,.「」『』・ー〜~]/g,'').replace(/は/g,'は');
+}
+function similarity(a,b){
+  a=normalizeJapanese(a); b=normalizeJapanese(b);
+  if(!a||!b) return 0;
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+  for(let i=0;i<=m;i++)dp[i][0]=i;
+  for(let j=0;j<=n;j++)dp[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return Math.max(0,1-dp[m][n]/Math.max(m,n));
+}
+function openPronunciation(id){
+  const l=lessons.find(x=>x.id===id);
+  const already=completedSpeech.has(id);
+  openSheet(`<div class="speech-card"><div class="sheet-title">Say it</div><div class="sheet-sub">${already?'Already passed — practise again anytime. XP is awarded once only.':'Listen once, then say the phrase naturally.'}</div><div class="speech-target">${l.phrase}</div><div class="speech-meaning">${l.en}</div><button class="mic-orb" id="micOrb" aria-label="Start microphone">🎙</button><div class="speech-status" id="speechStatus">Tap the mic and say the phrase.</div><div class="speech-result" id="speechResult"><div class="speech-heard" id="speechHeard"></div><div class="speech-score" id="speechScore"></div></div><button class="tiny-btn" id="hearFirst" style="margin-top:10px">🔊 Hear it first</button><div class="speech-note">This prototype uses your browser’s Japanese speech recognition. It checks whether your pronunciation is recognised as the target phrase; it is a useful speaking check, but not a phonetic/accent exam.</div><button class="sheet-close">Close</button></div>`);
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const mic=sheetCard.querySelector('#micOrb');
+  const status=sheetCard.querySelector('#speechStatus');
+  const result=sheetCard.querySelector('#speechResult');
+  const heard=sheetCard.querySelector('#speechHeard');
+  const score=sheetCard.querySelector('#speechScore');
+  sheetCard.querySelector('#hearFirst').addEventListener('click',()=>speakJapanese(l.speech));
+  sheetCard.querySelector('.sheet-close').addEventListener('click',closeSheet);
+  if(!SpeechRecognition){
+    mic.disabled=true; status.textContent='Microphone pronunciation checking is not supported in this browser. Try Chrome or Edge with microphone permission enabled.'; return;
+  }
+  mic.addEventListener('click',()=>{
+    const recognition=new SpeechRecognition();
+    recognition.lang='ja-JP'; recognition.interimResults=false; recognition.maxAlternatives=3; recognition.continuous=false;
+    mic.classList.add('listening'); mic.disabled=true; status.textContent='Listening… say it now.'; result.classList.remove('show');
+    recognition.onresult=e=>{
+      const alternatives=[...e.results[0]];
+      const best=alternatives.map(x=>({text:x.transcript,confidence:x.confidence||0,match:similarity(x.transcript,l.speech)})).sort((a,b)=>(b.match+b.confidence*.12)-(a.match+a.confidence*.12))[0];
+      const pct=Math.round(best.match*100);
+      heard.textContent=`I heard: ${best.text}`;
+      score.textContent=`Phrase match: ${pct}%`;
+      result.classList.add('show');
+      const pass=best.match>=0.72 || (best.match>=0.62 && best.confidence>=0.75);
+      if(pass){
+        status.textContent='Nice — that was recognised clearly. ✓';
+        if(!completedSpeech.has(id)){
+          completedSpeech.add(id); localStorage.setItem('moshiCompletedSpeech',JSON.stringify([...completedSpeech])); addXp(10); flash('+10 XP · Speaking pass!');
+        } else flash('Speaking pass · already mastered');
+        setTimeout(()=>{closeSheet();renderFeed(document.querySelector('.tab.active')?.dataset.filter||'all')},900);
+      }else{
+        status.textContent='Nearly. Listen again and retry — aim for the same rhythm and sounds.';
+        mic.disabled=false;
+      }
+    };
+    recognition.onerror=e=>{
+      mic.classList.remove('listening'); mic.disabled=false;
+      status.textContent=e.error==='not-allowed'?'Microphone access was blocked. Allow microphone permission and try again.':'I couldn’t get a clear recording. Tap the mic and try again.';
+    };
+    recognition.onend=()=>{mic.classList.remove('listening');if(!status.textContent.includes('Nice'))mic.disabled=false};
+    try{recognition.start()}catch(e){mic.classList.remove('listening');mic.disabled=false;status.textContent='The mic is already active. Try again in a moment.'}
+  });
+}
+
+function openQuiz(id){
+  const l=lessons.find(x=>x.id===id);
+  const alreadyCompleted = completedQuizzes.has(id);
+  openSheet(`<div class="quiz-card"><div class="sheet-title">10-second check</div><div class="sheet-sub">${alreadyCompleted?'Already mastered — review it again anytime, but XP is awarded once only.':'No pressure — testing helps memory stick.'}</div><div class="quiz-q">${l.quiz.q}</div><div class="choices">${l.quiz.choices.map(c=>`<button class="choice" data-answer="${encodeURIComponent(c)}">${c}</button>`).join('')}</div><button class="sheet-close">Close</button></div>`);
+  sheetCard.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+    const val=decodeURIComponent(c.dataset.answer);
+    sheetCard.querySelectorAll('.choice').forEach(x=>x.disabled=true);
+    if(val===l.quiz.a){
+      c.classList.add('correct');
+      if(!completedQuizzes.has(id)){
+        completedQuizzes.add(id);
+        localStorage.setItem('moshiCompletedQuizzes',JSON.stringify([...completedQuizzes]));
+        completed++;
+        localStorage.setItem('moshiCompleted',completed);
+        addXp(20);
+        flash('+20 XP · Nice!');
+      } else {
+        flash('Nice — already mastered');
+      }
+      setTimeout(()=>{
+        closeSheet();
+        renderFeed(document.querySelector('.tab.active')?.dataset.filter || 'all');
+      },650);
+    }
+    else{c.classList.add('wrong');[...sheetCard.querySelectorAll('.choice')].find(x=>decodeURIComponent(x.dataset.answer)===l.quiz.a)?.classList.add('correct')}
+  }));
+  sheetCard.querySelector('.sheet-close').addEventListener('click',closeSheet);
+}
+
+function addXp(n){
+  const beforeLevel=levelInfo(lifetimeXp).index;
+  xp += n;
+  lifetimeXp += n;
+  localStorage.setItem('moshiXp',xp);
+  localStorage.setItem('moshiLifetimeXp',lifetimeXp);
+  document.getElementById('xpCount').textContent=xp;
+  const after=levelInfo(lifetimeXp);
+  if(document.getElementById('mePage')?.classList.contains('active')) renderMePage();
+  if(after.index>beforeLevel) setTimeout(()=>flash(`${after.current.icon} Level up · ${after.current.name}!`),750);
+}
+
+function findSituationPhrase(key){
+  const [sid,idxStr]=String(key).split(':'); const sit=findSearchPack(sid); const idx=Number(idxStr);
+  if(!sit||!sit.phrases[idx])return null; return {...sit.phrases[idx],key,situation:sit.name,icon:sit.icon};
+}
+function showSaved(){
+ const lessonItems=[...saved].map(id=>lessons.find(l=>l.id===id)).filter(Boolean);
+ const situationItems=[...savedSituationPhrases].map(findSituationPhrase).filter(Boolean);
+ const lessonHtml=lessonItems.map(l=>`<div class="saved-item"><div><div class="saved-jp">${escapeHtml(l.phrase)}</div><div class="saved-en">${escapeHtml(l.en)}</div></div><button class="tiny-btn playSaved" data-lesson-id="${l.id}">🔊 Play</button></div>`).join('');
+ const sitHtml=situationItems.map(p=>`<div class="saved-item"><div><div class="saved-jp">${escapeHtml(p.r)}</div><div class="saved-en">${escapeHtml(p.en)} · ${p.icon} ${escapeHtml(p.situation)}</div></div><button class="tiny-btn playSavedSituation" data-saved-key="${p.key}">🔊 Play</button></div>`).join('');
+ const allHtml=lessonHtml+sitHtml;
+ openSheet(`<div class="sheet-title">Saved vocab</div><div class="sheet-sub">Your personal review deck from lessons and situation searches.</div><div class="saved-list">${allHtml||'<div class="saved-item"><div><div class="saved-jp">Nothing saved yet 👀</div><div class="saved-en">Save a phrase from a lesson or Search and it will appear here.</div></div></div>'}</div><button class="sheet-close">Back</button>`);
+ sheetCard.querySelectorAll('.playSaved').forEach(b=>b.addEventListener('click',()=>speakJapanese(lessons.find(l=>l.id===b.dataset.lessonId).speech)));
+ sheetCard.querySelectorAll('.playSavedSituation').forEach(b=>b.addEventListener('click',()=>{const p=findSituationPhrase(b.dataset.savedKey);if(p)speakJapanese(p.speech)}));
+ sheetCard.querySelector('.sheet-close').addEventListener('click',closeSheet);
+}
+
+function showProgress(){
+ const pct=Math.min(100,Math.round((completed/12)*100));
+ const li=levelInfo();
+ const milestone=li.next?`${li.toNext} XP to ${li.next.name}`:'Highest level reached';
+ openSheet(`<div class="sheet-title">Your progress</div><div class="sheet-sub">Small daily exposure beats occasional marathon study.</div><div class="progress-wrap"><div class="progress-card"><div class="progress-label">CURRENT LEVEL</div><div class="progress-big">${li.current.icon} ${li.current.name}</div><div class="bar"><span style="width:${li.progress}%"></span></div><div class="saved-en">${lifetimeXp.toLocaleString()} lifetime XP · ${milestone}</div></div><div class="progress-card"><div class="progress-label">QUIZZES MASTERED</div><div class="progress-big">${completed}</div><div class="bar"><span style="width:${pct}%"></span></div></div><div class="progress-card"><div class="progress-label">CURRENT STREAK</div><div class="progress-big">🔥 3 days</div><div class="daily"><div class="day done">M</div><div class="day done">T</div><div class="day done">W</div><div class="day">T</div><div class="day">F</div><div class="day">S</div><div class="day">S</div></div></div></div><button class="sheet-close">Keep learning</button>`);
+ sheetCard.querySelector('.sheet-close').addEventListener('click',closeSheet);
+}
+
+function friendById(id){return id===tutor.id?tutor:friendDirectory.find(f=>f.id===id)}
+function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function chatTime(){return new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
+function persistFriends(){localStorage.setItem('moshiFriends',JSON.stringify([...friendIds]))}
+function persistChats(){localStorage.setItem('moshiChats',JSON.stringify(chats))}
+function latestMessage(friendId){const list=chats[friendId]||[];return list.length?list[list.length-1].text:'Say hello 👋'}
+function translateKnown(text){
+  const key=(text||'').trim().toLowerCase().replace(/[!?.,]/g,'');
+  const map={
+    'konnichiwa':'Hello', 'genki desu ka':'How are you?', 'genki desu':'I’m well', 'arigatou':'Thank you',
+    'arigatou gozaimasu':'Thank you very much', 'daijoubu':'I’m okay / it’s alright', 'daijoubu desu ka':'Are you okay?',
+    'mata ne':'See you', 'ohayou':'Good morning', 'oyasumi':'Good night', 'hajimemashite':'Nice to meet you',
+    'yoroshiku onegaishimasu':'Nice to meet you / please treat me kindly', 'wakaranai':'I don’t understand', 'wakarimasen':'I don’t understand',
+    'nihongo o benkyou shiteimasu':'I’m studying Japanese', 'issho ni renshuu shiyou':'Let’s practise together'
+  };
+  return map[key]||'';
+}
+function normalizeTutorText(text){return String(text||'').toLowerCase().trim().replace(/[?!.,'\"]+/g,' ').replace(/\s+/g,' ')}
+function findTutorWordByEnglish(term){
+  const q=normalizeTutorText(term).replace(/^(a|an|the|to)\s+/,'');
+  return tutorWords.find(w=>q===w.en || q.includes(w.en) || w.en.includes(q));
+}
+function findTutorWordByRomaji(term){
+  const q=normalizeTutorText(term);
+  return tutorWords.find(w=>q===w.romaji || q.includes(w.romaji));
+}
+function tutorWordReply(w){
+  trackWords([w.romaji]);
+  return {from:'them',lang:'JP',text:`${w.romaji} — ${w.meaning}`,translation:w.example,time:chatTime()};
+}
+
+function categoryLabel(cat){return ({food:'food',travel:'travel',greetings:'greeting',everyday:'everyday',feelings:'feelings',sport:'football / sport'})[cat]||cat}
+function tutorReplyFor(text){
+  const raw=String(text||'').trim();
+  const q=normalizeTutorText(raw);
+  let m;
+  if(!q) return {from:'them',lang:'EN',text:'Ask me any Japanese word or phrase you want to learn.',time:chatTime()};
+
+  // English → Japanese: “how do I say hungry?” / “hungry in Japanese”
+  m=q.match(/(?:how do i say|how to say|what is|what's)\s+(.+?)(?:\s+in japanese)?$/) || q.match(/^(.+?)\s+in japanese$/);
+  if(m){
+    const w=findTutorWordByEnglish(m[1]);
+    if(w) return tutorWordReply(w);
+  }
+
+  // Japanese → English: “what does daijoubu mean?”
+  m=q.match(/what does\s+(.+?)\s+mean$/) || q.match(/meaning of\s+(.+)$/);
+  if(m){
+    const w=findTutorWordByRomaji(m[1]);
+    if(w) return tutorWordReply(w);
+  }
+
+  // Topic packs such as “teach me colours” or “give me clothing words”.
+  const requestedPack=allSearchPacks().find(pack=>{
+    const terms=[pack.name,...(pack.keywords||[])].map(normalizeTutorText);
+    return terms.some(term=>term && (q===term || q.includes(term)));
+  });
+  if(requestedPack && /(teach|learn|words|phrases|vocab|vocabulary|give me|show me)/.test(q)){
+    const picked=requestedPack.words.slice(0,6); trackWords(picked.map(w=>w.r));
+    const phraseLines=requestedPack.phrases.slice(0,3).map(p=>`${p.r} = ${p.en}`);
+    return {from:'them',lang:'JP',text:`${requestedPack.icon} ${requestedPack.name}\n${picked.map(w=>`${w.r} = ${w.en}`).join('\n')}\n\nUseful phrases:\n${phraseLines.join('\n')}`,translation:`You can also open Search → ${requestedPack.name} for audio, saving and the full pack.`,time:chatTime()};
+  }
+
+  // Teach N words, optionally by category.
+  m=q.match(/(?:teach me|give me|show me)\s+(\d+)?\s*(food|travel|greeting|greetings|everyday|feeling|feelings|football|sport)?\s*words?/);
+  if(m){
+    const n=Math.max(1,Math.min(8,Number(m[1]||5)));
+    let cat=(m[2]||'').replace('greeting','greetings').replace('feeling','feelings').replace('football','sport');
+    const map={greetings:'greetings',feelings:'feelings',sport:'sport',food:'food',travel:'travel',everyday:'everyday'};
+    let list=cat?tutorWords.filter(w=>w.cat===map[cat]):tutorWords;
+    if(list.length<n) list=tutorWords;
+    const start=(raw.length+chats[tutor.id].length)%Math.max(1,list.length);
+    const picked=[];
+    for(let i=0;i<list.length && picked.length<n;i++){
+      const w=list[(start+i)%list.length]; if(!picked.some(x=>x.romaji===w.romaji)) picked.push(w);
+    }
+    const lines=picked.map(w=>`${w.romaji} = ${w.meaning}`).join('\n');
+    return {from:'them',lang:'JP',text:`Here are ${picked.length} ${cat?categoryLabel(map[cat])+' ':''}words:\n${lines}`,translation:'Pick one and ask me “give me an example with ___” if you want to practise it.',time:chatTime()};
+  }
+
+  // Example sentence request.
+  m=q.match(/(?:example|sentence)(?:\s+with|\s+for)?\s+(.+)$/) || q.match(/give me an example with\s+(.+)$/);
+  if(m){
+    const w=findTutorWordByEnglish(m[1])||findTutorWordByRomaji(m[1]);
+    if(w) return {from:'them',lang:'JP',text:w.example.split(' — ')[0],translation:w.example.includes(' — ')?w.example.split(' — ').slice(1).join(' — '):w.meaning,time:chatTime()};
+  }
+
+  // Direct lookup if user simply types a known English or romaji word.
+  const direct=findTutorWordByEnglish(q)||findTutorWordByRomaji(q);
+  if(direct) return tutorWordReply(direct);
+
+  if(q.includes('quiz me')||q.includes('test me')){
+    const pool=tutorWords.filter(w=>['greetings','travel','everyday'].includes(w.cat));
+    const w=pool[(chats[tutor.id].length+raw.length)%pool.length];
+    return {from:'them',lang:'EN',text:`Quick memory check: what does “${w.romaji}” mean? Type your answer, then ask me “what does ${w.romaji} mean?” to check it.`,time:chatTime()};
+  }
+  if(q.includes('help')||q==='what can you do'){
+    return {from:'them',lang:'EN',text:'You can ask me: “How do I say thirsty?”, “What does sumimasen mean?”, “Teach me 5 travel words”, or “Give me an example with oishii.”',time:chatTime()};
+  }
+  return {from:'them',lang:'EN',text:'I don’t have that one in my prototype vocabulary yet. Try asking for a common beginner word, or ask me for food, travel, greeting, feeling, everyday, or football words.',time:chatTime()};
+}
+function tutorReply(text){
+  if(activeFriendId!==tutor.id)return;
+  const typing=document.getElementById('botTyping'); if(typing)typing.style.display='block';
+  window.setTimeout(()=>{
+    chats[tutor.id]=chats[tutor.id]||[];
+    chats[tutor.id].push(tutorReplyFor(text));persistChats();renderChat(tutor.id);scrollChatBottom();
+  },420);
+}
+function renderFriendsPage(){
+  const box=document.getElementById('friendsContent');
+  if(activeFriendId){renderChat(activeFriendId);return}
+  const myFriends=[...friendIds].map(friendById).filter(Boolean);
+  const suggestions=friendDirectory.filter(f=>!friendIds.has(f.id));
+  box.innerHTML=`
+    <div class="friend-tools"><input class="friend-search" id="friendSearch" placeholder="Search @username or name" aria-label="Search people"><button class="friend-add-btn" id="friendSearchBtn">Find</button></div>
+    <div id="friendSearchResults"></div>
+    <div class="tutor-card"><div class="tutor-avatar">🤖</div><div class="tutor-info"><div class="tutor-name">Manabu Tutor <span class="tutor-badge">● ONLINE</span></div><div class="tutor-desc">Ask for words, meanings, examples, or a mini vocab set. Always romaji-first.</div></div><button class="tutor-open" id="openTutor">Ask</button></div>
+    <div class="friend-section"><div class="friend-section-head"><div class="friend-section-title">Your friends</div><div class="friend-count">${myFriends.length} connected</div></div>
+      <div class="friend-list">${myFriends.length?myFriends.map(f=>friendCardHtml(f)).join(''):'<div class="empty-friends">No friends yet. Search a username or add someone from Suggested people.</div>'}</div>
+    </div>
+    <div class="friend-section"><div class="friend-section-head"><div class="friend-section-title">Suggested people</div><div class="friend-count">Practise together</div></div>
+      <div class="discover-wrap">${suggestions.length?suggestions.slice(0,5).map(f=>discoverCardHtml(f)).join(''):'<div class="empty-friends">You’ve added everyone in this prototype.</div>'}</div>
+    </div>`;
+  const search=box.querySelector('#friendSearch');
+  const runSearch=()=>renderFriendSearch(search.value);
+  box.querySelector('#friendSearchBtn').addEventListener('click',runSearch);
+  search.addEventListener('keydown',e=>{if(e.key==='Enter')runSearch()});
+  box.querySelector('#openTutor').addEventListener('click',()=>openChat(tutor.id));
+  box.querySelectorAll('[data-message-friend]').forEach(b=>b.addEventListener('click',()=>openChat(b.dataset.messageFriend)));
+  box.querySelectorAll('[data-add-friend]').forEach(b=>b.addEventListener('click',()=>addFriend(b.dataset.addFriend)));
+}
+function friendCardHtml(f){
+  return `<div class="friend-card"><div class="friend-avatar-wrap"><div class="friend-avatar">${f.avatar}</div>${f.online?'<span class="online-dot"></span>':''}</div><div class="friend-info"><div class="friend-name">${escapeHtml(f.name)}</div><div class="friend-handle">${escapeHtml(f.handle)} · ${f.level}</div><div class="friend-preview">${escapeHtml(latestMessage(f.id))}</div></div><div class="friend-actions"><button class="friend-mini-btn primary" data-message-friend="${f.id}">Chat</button></div></div>`;
+}
+function discoverCardHtml(f){
+  return `<div class="discover-card"><div class="friend-avatar-wrap"><div class="friend-avatar">${f.avatar}</div>${f.online?'<span class="online-dot"></span>':''}</div><div class="friend-info"><div class="friend-name">${escapeHtml(f.name)}</div><div class="friend-handle">${escapeHtml(f.handle)} · ${escapeHtml(f.bio)}</div></div><button class="friend-mini-btn add" data-add-friend="${f.id}">+ Add</button></div>`;
+}
+function renderFriendSearch(query){
+  const result=document.getElementById('friendSearchResults');
+  const q=(query||'').trim().toLowerCase();
+  if(!q){result.innerHTML='';return}
+  const found=friendDirectory.filter(f=>f.name.toLowerCase().includes(q)||f.handle.toLowerCase().includes(q)).slice(0,5);
+  result.innerHTML=`<div class="discover-wrap">${found.length?found.map(f=>friendIds.has(f.id)?`<div class="discover-card"><div class="friend-avatar">${f.avatar}</div><div class="friend-info"><div class="friend-name">${escapeHtml(f.name)}</div><div class="friend-handle">${escapeHtml(f.handle)} · already friends</div></div><button class="friend-mini-btn primary" data-message-friend="${f.id}">Chat</button></div>`:discoverCardHtml(f)).join(''):'<div class="empty-friends">No match in the demo community yet.</div>'}</div>`;
+  result.querySelectorAll('[data-add-friend]').forEach(b=>b.addEventListener('click',()=>addFriend(b.dataset.addFriend)));
+  result.querySelectorAll('[data-message-friend]').forEach(b=>b.addEventListener('click',()=>openChat(b.dataset.messageFriend)));
+}
+function addFriend(id){
+  const f=friendById(id); if(!f)return;
+  friendIds.add(id);persistFriends();
+  if(!chats[id])chats[id]=[];persistChats();
+  flash(`${f.name} added!`);renderFriendsPage();
+}
+function openChat(id){activeFriendId=id;chatLanguage='JP';renderFriendsPage();setTimeout(scrollChatBottom,0)}
+function closeChat(){activeFriendId=null;renderFriendsPage()}
+function renderChat(id){
+  const f=friendById(id), box=document.getElementById('friendsContent');
+  if(!f){activeFriendId=null;renderFriendsPage();return}
+  const list=chats[id]||[];
+  const isTutor=id===tutor.id;
+  const jpPhrases=isTutor?[]:['Konnichiwa!','Genki desu ka?','Arigatou!','Daijoubu?','Mata ne!','Issho ni renshuu shiyou!'];
+  const tutorPrompts=['How do I say hungry?','What does daijoubu mean?','Teach me 5 food words','Teach me 5 travel words','Example with oishii'];
+  box.innerHTML=`<div class="chat-shell">
+    <div class="chat-top"><button class="chat-back" id="chatBack">‹</button><div class="chat-person"><div class="friend-avatar">${f.avatar}</div><div><div class="chat-title">${escapeHtml(f.name)} ${isTutor?'<span class="tutor-badge">TUTOR</span>':''}</div><div class="chat-status">${isTutor?'● Ready to help':'● '+(f.online?'Online now':'Offline')} · ${escapeHtml(f.handle)}</div></div></div>${isTutor?'':`<div class="language-toggle"><button class="lang-btn ${chatLanguage==='EN'?'active':''}" data-chat-lang="EN">English</button><button class="lang-btn ${chatLanguage==='JP'?'active':''}" data-chat-lang="JP">Japanese</button></div>`}</div>
+    ${isTutor?'<div class="tutor-intro"><span class="tutor-label">ROMAJI-FIRST TUTOR</span><br>Ask in normal English or type a Japanese word in romaji. I’ll explain it without kanji or kana.</div>':''}
+    <div class="chat-messages" id="chatMessages">${list.length?list.map(messageHtml).join(''):'<div class="empty-friends">No messages yet.</div>'}<div class="bot-typing" id="botTyping" style="display:none">Manabu Tutor is thinking…</div></div>
+    <div class="chat-compose">${isTutor?`<div class="tutor-suggestions">${tutorPrompts.map(p=>`<button class="tutor-suggestion" data-tutor-prompt="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}</div>`:(chatLanguage==='JP'?`<div class="quick-phrases">${jpPhrases.map(p=>`<button class="quick-phrase" data-quick="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}</div>`:'')}<div class="compose-row"><textarea class="chat-input" id="chatInput" rows="1" placeholder="${isTutor?'Ask me a Japanese word or phrase…':chatLanguage==='JP'?'Write Japanese in romaji…':'Write a message in English…'}"></textarea><button class="chat-send" id="chatSend">↑</button></div><div class="chat-note">${isTutor?'Prototype tutor: built-in beginner vocabulary and phrase help, stored only in this browser.':'Japanese chat stays romaji-first — no kanji or kana required. Messages in this prototype are stored only in this browser.'}</div></div>
+    </div>`;
+  box.querySelector('#chatBack').addEventListener('click',closeChat);
+  box.querySelectorAll('[data-chat-lang]').forEach(b=>b.addEventListener('click',()=>{chatLanguage=b.dataset.chatLang;renderChat(id);setTimeout(scrollChatBottom,0)}));
+  box.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{box.querySelector('#chatInput').value=b.dataset.quick;box.querySelector('#chatInput').focus()}));
+  box.querySelectorAll('[data-tutor-prompt]').forEach(b=>b.addEventListener('click',()=>{box.querySelector('#chatInput').value=b.dataset.tutorPrompt;sendChatMessage(id)}));
+  box.querySelector('#chatSend').addEventListener('click',()=>sendChatMessage(id));
+  box.querySelector('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMessage(id)}});
+}
+function messageHtml(m){
+  const trans=m.translation?`<div class="bubble-translation">${escapeHtml(m.translation)}</div>`:'';
+  return `<div class="bubble-row ${m.from==='me'?'me':''}"><div class="bubble"><div class="bubble-meta"><span class="lang-pill">${m.lang==='JP'?'JP · ROMAJI':'EN'}</span></div>${escapeHtml(m.text)}${trans}<div class="bubble-time">${escapeHtml(m.time||'')}</div></div></div>`;
+}
+function sendChatMessage(id){
+  const input=document.getElementById('chatInput'); if(!input)return;
+  const text=input.value.trim(); if(!text)return;
+  const isTutor=id===tutor.id;
+  const msg={from:'me',lang:isTutor?'EN':chatLanguage,text,time:chatTime()};
+  if(!isTutor && chatLanguage==='JP'){const t=translateKnown(text);if(t)msg.translation=t}
+  chats[id]=chats[id]||[];chats[id].push(msg);persistChats();input.value='';renderChat(id);scrollChatBottom();
+  if(isTutor)tutorReply(text); else window.setTimeout(()=>demoFriendReply(id,chatLanguage),650);
+}
+function demoFriendReply(id,lang){
+  if(activeFriendId!==id)return;
+  const jp=[['Sou desu ne!','Yeah / That’s right!'],['Ii ne!','Nice!'],['Watashi mo renshuu shiteimasu.','I’m practising too.'],['Daijoubu! Yukkuri de ii yo.','It’s okay! Taking it slowly is fine.'],['Mata hanasou!','Let’s talk again!']];
+  const en=['Nice! Keep going 👏','I’m learning that one too.','Want to practise another phrase?','That sounded good to me!','Japanese together is way more fun.'];
+  let reply;
+  if(lang==='JP'){const pick=jp[(chats[id].length+id.length)%jp.length];reply={from:'them',lang:'JP',text:pick[0],translation:pick[1],time:chatTime()}}
+  else{reply={from:'them',lang:'EN',text:en[(chats[id].length+id.length)%en.length],time:chatTime()}}
+  chats[id].push(reply);persistChats();renderChat(id);scrollChatBottom();
+}
+function scrollChatBottom(){const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;document.getElementById('friendsPage')?.scrollTo({top:document.getElementById('friendsPage').scrollHeight,behavior:'smooth'})}
+function normalizeSearch(text){return String(text||'').toLowerCase().trim().replace(/[’']/g,'').replace(/\s+/g,' ')}
+function situationMatches(sit,q){
+  if(!q)return true;
+  const hay=[sit.name,sit.desc,...(sit.keywords||[]),...sit.words.flatMap(w=>[w.r,w.en]),...sit.phrases.flatMap(p=>[p.r,p.en])].join(' ').toLowerCase();
+  return q.split(' ').every(part=>hay.includes(part));
+}
+function quickMatches(q){
+  if(!q)return [];
+  const hits=[];
+  allSearchPacks().forEach(sit=>{
+    sit.words.forEach((w,i)=>{const hay=`${w.r} ${w.en}`.toLowerCase();if(hay.includes(q))hits.push({type:'word',sit,index:i,r:w.r,en:w.en})});
+    sit.phrases.forEach((p,i)=>{const hay=`${p.r} ${p.en}`.toLowerCase();if(hay.includes(q))hits.push({type:'phrase',sit,index:i,r:p.r,en:p.en})});
+  });
+  const unique=[]; const seen=new Set();
+  hits.forEach(h=>{const k=`${h.r}|${h.en}`.toLowerCase();if(!seen.has(k)){seen.add(k);unique.push(h)}});
+  return unique.slice(0,10);
+}
+function packCardHtml(s){
+  const topic=s.id.startsWith('topic-');
+  return `<button class="situation-card ${topic?'topic-card':''}" data-open-situation="${s.id}"><div class="situation-icon">${s.icon}</div><div class="situation-name">${escapeHtml(s.name)}</div>${topic?'<div class="topic-pill">Topic</div>':''}<div class="situation-desc">${escapeHtml(s.desc)}</div><div class="situation-count">${s.words.length} words · ${s.phrases.length} phrases</div></button>`;
+}
+function smartGenerateHtml(q){
+  if(!q)return '';
+  return `<div class="smart-generate"><div class="smart-generate-top"><div class="smart-generate-icon">✦</div><div><div class="smart-generate-title">Ask Manabu about “${escapeHtml(q)}”</div><div class="smart-generate-copy">Can’t see exactly what you need? Send this search to Manabu Tutor. The prototype uses its built-in language library; a future connected AI version can generate completely new packs.</div></div></div><button class="smart-generate-btn" data-smart-generate="${escapeHtml(q)}">Ask Tutor to build this →</button></div>`;
+}
+function situationCardsHtml(q=''){
+  const packs=allSearchPacks();
+  const matches=packs.filter(x=>situationMatches(x,q));
+  const quick=quickMatches(q);
+  if(q){
+    const matchHtml=matches.length?`<div class="search-section-title">Matching collections</div><div class="situation-grid">${matches.map(packCardHtml).join('')}</div>`:'';
+    const quickHtml=quick.length?`<div class="search-section-title">Quick matches</div><div class="quick-match-list">${quick.map(h=>`<div class="quick-match" data-open-situation="${h.sit.id}"><div class="quick-match-main"><div class="quick-match-romaji">${escapeHtml(h.r)}</div><div class="quick-match-en">${escapeHtml(h.en)}</div></div><span class="quick-match-tag">${h.sit.icon} ${escapeHtml(h.sit.name)}</span></div>`).join('')}</div>`:'';
+    return `${quickHtml}${matchHtml}${(!matches.length&&!quick.length)?`<div class="search-empty">No exact collection for <strong>${escapeHtml(q)}</strong> yet — but Manabu Tutor can still try the built-in vocabulary library.</div>`:''}${smartGenerateHtml(q)}`;
+  }
+  const topics=topicPacks, realSituations=situations;
+  return `<div class="search-library-head"><div><div class="page-kicker">Build your vocabulary</div><div class="search-library-title">Topics</div></div><div class="search-library-sub">Colours, food, clothing<br>and everyday words</div></div><div class="situation-grid">${topics.map(packCardHtml).join('')}</div><div class="search-library-head"><div><div class="page-kicker">Use it in real life</div><div class="search-library-title">Situations</div></div><div class="search-library-sub">What you might need<br>in the moment</div></div><div class="situation-grid">${realSituations.map(packCardHtml).join('')}</div>`;
+}
+function bindSituationOpeners(root){
+  root.querySelectorAll('[data-open-situation]').forEach(el=>el.addEventListener('click',()=>{activeSituationId=el.dataset.openSituation;renderSearchPage()}));
+  root.querySelectorAll('[data-smart-generate]').forEach(el=>el.addEventListener('click',()=>openTutorFromSearch(el.dataset.smartGenerate)));
+}
+function openTutorFromSearch(q){
+  closeSheet();hideAppPages();feed.style.display='none';activeFriendId=tutor.id;document.getElementById('friendsPage').classList.add('active');document.getElementById('mainHeader').classList.add('me-mode');
+  renderChat(tutor.id);const input=document.getElementById('chatInput');if(input){input.value=`Teach me useful beginner Japanese words and phrases for ${q}`;sendChatMessage(tutor.id)}
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page==='friends'));
+}
+function renderSearchResults(q){
+  situationQuery=normalizeSearch(q);
+  const results=document.getElementById('situationResults'); if(!results)return;
+  results.innerHTML=situationCardsHtml(situationQuery); bindSituationOpeners(results);
+  const clear=document.getElementById('searchClear'); if(clear)clear.classList.toggle('show',!!situationQuery);
+}
+function renderSearchPage(){
+  const box=document.getElementById('searchContent'); if(!box)return;
+  if(activeSituationId){renderSituationDetail(activeSituationId);return}
+  box.innerHTML=`<div class="search-box"><span class="search-icon">⌕</span><input class="search-input" id="situationSearch" type="search" autocomplete="off" placeholder="Try: colours, food, clothing, cafe, pool…" value="${escapeHtml(situationQuery)}"><button class="search-clear ${situationQuery?'show':''}" id="searchClear">×</button></div><div class="situation-chips">${['Colours','Food','Clothing','Numbers','Feelings','Café','Theme Park','Pool','Hotel','Train','Shopping','Football'].map(x=>`<button class="situation-chip" data-search-chip="${x}">${x}</button>`).join('')}</div><div id="situationResults">${situationCardsHtml(situationQuery)}</div>`;
+  const input=box.querySelector('#situationSearch');
+  input.addEventListener('input',()=>renderSearchResults(input.value));
+  box.querySelector('#searchClear').addEventListener('click',()=>{input.value='';situationQuery='';renderSearchResults('');input.focus()});
+  box.querySelectorAll('[data-search-chip]').forEach(b=>b.addEventListener('click',()=>{input.value=b.dataset.searchChip;situationQuery=normalizeSearch(input.value);renderSearchResults(input.value)}));
+  bindSituationOpeners(box);
+}
+function toggleSituationSave(key,btn){
+  if(savedSituationPhrases.has(key)){savedSituationPhrases.delete(key);btn.classList.remove('saved');btn.textContent='♡ Save';flash('Removed from saved')}
+  else{savedSituationPhrases.add(key);btn.classList.add('saved');btn.textContent='♥ Saved';flash('Saved to your vocab')}
+  localStorage.setItem('moshiSavedSituationPhrases',JSON.stringify([...savedSituationPhrases]));
+}
+function renderSituationDetail(id){
+  const sit=findSearchPack(id); const box=document.getElementById('searchContent'); if(!sit||!box){activeSituationId=null;renderSearchPage();return}
+  trackWords(sit.words.map(w=>w.r));
+  box.innerHTML=`<div class="situation-top"><button class="situation-back" id="situationBack">←</button><div class="situation-hero-icon">${sit.icon}</div><div class="situation-hero-copy"><div class="situation-hero-title">${escapeHtml(sit.name)}</div><div class="situation-hero-sub">${sit.id.startsWith('topic-')?'Build your everyday vocabulary':'Useful Japanese for this exact situation'}</div></div></div><div class="page-sub">${escapeHtml(sit.desc)} Tap 🔊 to hear native Japanese pronunciation. Everything you read stays in romaji.</div><div class="phrase-section"><div class="phrase-section-head">Key words</div><div class="word-list">${sit.words.map((w,i)=>`<div class="word-card"><div class="word-romaji">${escapeHtml(w.r)}</div><div class="word-en">${escapeHtml(w.en)}</div><button class="word-play" data-situation-word="${i}">🔊</button></div>`).join('')}</div></div><div class="phrase-section"><div class="phrase-section-head">Useful phrases</div><div class="phrase-list">${sit.phrases.map((p,i)=>{const key=`${sit.id}:${i}`,isSaved=savedSituationPhrases.has(key);return `<div class="phrase-card"><div class="phrase-romaji">${escapeHtml(p.r)}</div><div class="phrase-en">${escapeHtml(p.en)}</div><div class="phrase-actions"><button class="phrase-action primary" data-situation-phrase="${i}">🔊 Hear it</button><button class="phrase-action ${isSaved?'saved':''}" data-save-situation="${key}">${isSaved?'♥ Saved':'♡ Save'}</button></div></div>`}).join('')}</div></div>`;
+  box.querySelector('#situationBack').addEventListener('click',()=>{activeSituationId=null;renderSearchPage();setTimeout(()=>document.getElementById('situationSearch')?.focus(),0)});
+  box.querySelectorAll('[data-situation-word]').forEach(b=>b.addEventListener('click',()=>speakJapanese(sit.words[Number(b.dataset.situationWord)].speech)));
+  box.querySelectorAll('[data-situation-phrase]').forEach(b=>b.addEventListener('click',()=>speakJapanese(sit.phrases[Number(b.dataset.situationPhrase)].speech)));
+  box.querySelectorAll('[data-save-situation]').forEach(b=>b.addEventListener('click',()=>toggleSituationSave(b.dataset.saveSituation,b)));
+  document.getElementById('searchPage')?.scrollTo({top:0,behavior:'smooth'});
+}
+function showSearch(){
+  closeSheet(); hideAppPages(); feed.style.display='none'; activeSituationId=null;
+  document.getElementById('searchPage').classList.add('active');
+  document.getElementById('mainHeader').classList.remove('me-mode');
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page==='home'));
+  renderSearchPage();
+}
+
+function avatarById(id){return avatarShop.find(a=>a.id===id)||avatarShop[0]}
+function renderMePage(){
+  const me=document.getElementById('meContent');
+  const avatar=avatarById(equippedAvatar);
+  const speechPct=Math.round((completedSpeech.size/lessons.length)*100);
+  const quizPct=Math.round((completedQuizzes.size/lessons.length)*100);
+  const li=levelInfo();
+  const nextCopy=li.next?`<span><strong>${li.toNext.toLocaleString()} XP</strong> to ${li.next.name}</span><span>${li.next.min.toLocaleString()} XP</span>`:`<span><strong>Top rank reached</strong></span><span>${lifetimeXp.toLocaleString()} XP</span>`;
+  me.innerHTML=`
+    <div class="profile-hero"><div class="profile-avatar">${avatar.icon}</div><div><div class="profile-name">Ben’s Japanese</div><div class="profile-level">${li.current.icon} ${li.current.name} · speaking first</div></div><div class="wallet"><div class="wallet-num">⚡ ${xp}</div><div class="wallet-label">Spendable XP</div></div></div>
+    <div class="level-card"><div class="level-top"><div><div class="page-kicker">Your level</div><div class="level-name">${li.current.icon} ${li.current.name}</div></div><div class="level-lifetime">${lifetimeXp.toLocaleString()} lifetime XP</div></div><div class="level-bar"><span style="width:${li.progress}%"></span></div><div class="level-next">${nextCopy}</div></div>
+    <div class="me-grid"><div class="me-stat"><div class="me-stat-label">Quiz mastery</div><div class="me-stat-big">${completedQuizzes.size}/${lessons.length}</div><div class="bar"><span style="width:${quizPct}%"></span></div></div><div class="me-stat"><div class="me-stat-label">Speaking passes</div><div class="me-stat-big">${completedSpeech.size}/${lessons.length}</div><div class="bar"><span style="width:${speechPct}%"></span></div></div><div class="me-stat"><div class="me-stat-label">Lifetime XP</div><div class="me-stat-big">⚡ ${lifetimeXp.toLocaleString()}</div></div><div class="me-stat"><div class="me-stat-label">Streak</div><div class="me-stat-big">🔥 3 days</div></div></div>
+    <div class="stats-title">Learning activity</div>
+    <div class="learning-stats"><div class="learning-stat"><div class="learning-stat-label">This session</div><div class="learning-stat-value" id="sessionTimeStat">${formatDuration(sessionSeconds)}</div><div class="learning-stat-note">Active time since opening Manabu</div></div><div class="learning-stat"><div class="learning-stat-label">Total app time</div><div class="learning-stat-value" id="totalTimeStat">${formatDuration(learningStats.totalSeconds)}</div><div class="learning-stat-note">Saved across sessions</div></div><div class="learning-stat"><div class="learning-stat-label">Encountered today</div><div class="learning-stat-value" id="wordsTodayStat">${learningStats.todayWords.length}</div><div class="learning-stat-note">Unique vocabulary seen today</div></div><div class="learning-stat"><div class="learning-stat-label">Learned today</div><div class="learning-stat-value" id="learnedTodayStat">${learningStats.todayLearned.length}</div><div class="learning-stat-note">Passed a later memory check today</div></div><div class="learning-stat"><div class="learning-stat-label">Encountered total</div><div class="learning-stat-value" id="totalWordsStat">${learningStats.totalWords.length}</div><div class="learning-stat-note">Unique vocabulary seen overall</div></div><div class="learning-stat"><div class="learning-stat-label">Learned total</div><div class="learning-stat-value" id="learnedWordsStat">${learningStats.learnedWords.length}</div><div class="learning-stat-note">Successfully recalled after earlier exposure</div></div><div class="learning-stat"><div class="learning-stat-label">Mastery rate</div><div class="learning-stat-value" id="masteryRateStat">${learningStats.totalWords.length?Math.round((learningStats.learnedWords.length/learningStats.totalWords.length)*100):0}%</div><div class="learning-stat-note">Learned ÷ encountered vocabulary</div></div></div>
+    <button class="me-saved-card" id="openSavedFromMe"><div class="me-saved-icon">♡</div><div class="me-saved-copy"><div class="me-saved-title">Saved words & phrases</div><div class="me-saved-sub">${saved.size + savedSituationPhrases.size} saved · review everything you’ve kept from lessons and Search</div></div><div class="me-saved-arrow">›</div></button>
+    <div class="section-row"><div><div class="page-kicker">Spend your XP</div><div class="section-title">Avatar shop</div></div><div class="section-note">Your level never drops when you spend</div></div>
+    <div class="shop-grid">${avatarShop.map(a=>{
+      const owned=ownedAvatars.has(a.id), equipped=equippedAvatar===a.id, can=xp>=a.price;
+      return `<div class="shop-item ${equipped?'equipped':''}">${owned?'<div class="owned-pill">OWNED</div>':''}<div class="shop-avatar">${a.icon}</div><div class="shop-name">${a.name}</div><div class="shop-price">${a.price===0?'Starter avatar':`⚡ ${a.price} XP`}</div>${equipped?'<button class="shop-btn" disabled>Equipped</button>':owned?`<button class="shop-btn equip" data-equip="${a.id}">Equip</button>`:`<button class="shop-btn buy" data-buy="${a.id}" ${can?'':'disabled'}>${can?'Unlock':`Need ${a.price-xp} XP`}</button>`}</div>`
+    }).join('')}</div>`;
+  me.querySelectorAll('[data-buy]').forEach(btn=>btn.addEventListener('click',()=>buyAvatar(btn.dataset.buy)));
+  me.querySelectorAll('[data-equip]').forEach(btn=>btn.addEventListener('click',()=>equipAvatar(btn.dataset.equip)));
+  me.querySelector('#openSavedFromMe')?.addEventListener('click',showSaved);
+}
+function buyAvatar(id){
+  const a=avatarById(id);
+  if(ownedAvatars.has(id)){equipAvatar(id);return}
+  if(xp<a.price){flash(`You need ${a.price-xp} more XP`);return}
+  xp-=a.price; localStorage.setItem('moshiXp',xp); document.getElementById('xpCount').textContent=xp;
+  ownedAvatars.add(id); localStorage.setItem('moshiOwnedAvatars',JSON.stringify([...ownedAvatars]));
+  equippedAvatar=id; localStorage.setItem('moshiEquippedAvatar',id); flash(`${a.name} unlocked!`); renderMePage();
+}
+function equipAvatar(id){
+  if(!ownedAvatars.has(id))return;
+  equippedAvatar=id; localStorage.setItem('moshiEquippedAvatar',id); flash(`${avatarById(id).name} equipped`); renderMePage();
+}
+function hideAppPages(){
+  document.getElementById('mePage').classList.remove('active');
+  document.getElementById('friendsPage').classList.remove('active');
+  document.getElementById('searchPage').classList.remove('active');
+}
+function showProfile(){
+  closeSheet();hideAppPages();feed.style.display='none';
+  document.getElementById('mePage').classList.add('active');
+  document.getElementById('mainHeader').classList.add('me-mode');
+  renderMePage();
+}
+function showFriends(){
+  closeSheet();hideAppPages();feed.style.display='none';
+  activeFriendId=null;
+  document.getElementById('friendsPage').classList.add('active');
+  document.getElementById('mainHeader').classList.add('me-mode');
+  renderFriendsPage();
+}
+function showLearn(){
+  closeSheet();hideAppPages();
+  feed.style.display='block';
+  document.getElementById('mainHeader').classList.remove('me-mode');
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+ if(t.dataset.filter==='search'){showSearch();return;}
+ showLearn();renderFeed(t.dataset.filter);feed.scrollTop=0;
+ document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page==='home'));
+}));
+
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+ if(b.dataset.page==='progress'){showLearn();showProgress();}
+ if(b.dataset.page==='friends')showFriends();
+ if(b.dataset.page==='profile')showProfile();
+ if(b.dataset.page==='home'){showLearn();document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));renderFeed('all');feed.scrollTop=0;}
+}));
+
+document.querySelectorAll('.goal').forEach(g=>g.addEventListener('click',()=>{document.querySelectorAll('.goal').forEach(x=>x.classList.remove('active'));g.classList.add('active')}));
+document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('onboarding').classList.add('hidden');localStorage.setItem('moshiOnboarded','1')});
+if(localStorage.getItem('moshiOnboarded')==='1')document.getElementById('onboarding').classList.add('hidden');
+
+renderFeed();
+</script>
+</body>
+</html>

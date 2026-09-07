@@ -1,3 +1,7 @@
+# Manabu v0.11.4 beta
+
+**PWA relaunch fix:** saved Home Screen apps now fall back to the Manabu app shell instead of showing `Not found` when reopened at a previously visited route.
+
 # Manabu v0.11.3 — Live AI setup
 
 Manabu is a speaking-first Japanese learning app. Learners should never need to configure AI settings.

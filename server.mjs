@@ -31,6 +31,35 @@ async function handleTranscribe(req,res,ip){
   try{const raw=await body(req,MAX_AUDIO);const ct=req.headers['content-type']||'';if(!ct.startsWith('multipart/form-data'))return json(res,400,{error:{message:'Expected multipart audio upload.'}});const r=await openaiFetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{'Content-Type':ct},body:raw});const text=await r.text();securityHeaders(res,'application/json; charset=utf-8');res.statusCode=r.status;res.end(text)}catch(e){json(res,e.status||500,{error:{message:e.name==='AbortError'?'Transcription timed out.':e.message||'Transcription failed.'}})}
 }
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.webmanifest':'application/manifest+json','.css':'text/css; charset=utf-8'};
-async function serveStatic(req,res){let pathname=new URL(req.url,'http://localhost').pathname;if(pathname==='/'||pathname==='')pathname='/index.html';const rel=decodeURIComponent(pathname).replace(/^\/+/, '');const file=path.resolve(__dirname,rel);if(!file.startsWith(path.resolve(__dirname)+path.sep))return json(res,403,{error:{message:'Forbidden'}});try{const data=await fs.readFile(file);securityHeaders(res,MIME[path.extname(file)]||'application/octet-stream');res.statusCode=200;res.end(data)}catch{json(res,404,{error:{message:'Not found'}})}}
+async function serveStatic(req,res){
+  let pathname=new URL(req.url,'http://localhost').pathname;
+  if(pathname==='/'||pathname==='')pathname='/index.html';
+  const rel=decodeURIComponent(pathname).replace(/^\/+/, '');
+  const root=path.resolve(__dirname);
+  const file=path.resolve(__dirname,rel);
+  if(!file.startsWith(root+path.sep))return json(res,403,{error:{message:'Forbidden'}});
+  try{
+    const data=await fs.readFile(file);
+    securityHeaders(res,MIME[path.extname(file)]||'application/octet-stream');
+    res.statusCode=200;
+    if(req.method==='HEAD')return res.end();
+    return res.end(data);
+  }catch{
+    // PWA/iOS can relaunch a saved app at a previously visited client-side URL.
+    // For browser navigations, always fall back to the app shell instead of a 404.
+    const acceptsHtml=String(req.headers.accept||'').includes('text/html');
+    const looksLikeRoute=!path.extname(pathname);
+    if(acceptsHtml||looksLikeRoute){
+      try{
+        const data=await fs.readFile(path.join(__dirname,'index.html'));
+        securityHeaders(res,'text/html; charset=utf-8');
+        res.statusCode=200;
+        if(req.method==='HEAD')return res.end();
+        return res.end(data);
+      }catch{}
+    }
+    return json(res,404,{error:{message:'Not found'}});
+  }
+}
 const server=http.createServer(async(req,res)=>{const ip=req.socket.remoteAddress||'unknown';if(req.method==='POST'&&req.url?.startsWith('/api/manabu-ai'))return handleAI(req,res,ip);if(req.method==='POST'&&req.url?.startsWith('/api/manabu-transcribe'))return handleTranscribe(req,res,ip);if(!['GET','HEAD'].includes(req.method||''))return json(res,405,{error:{message:'Method not allowed'}});return serveStatic(req,res)});
 server.listen(PORT,()=>console.log(`Manabu beta running at http://localhost:${PORT}`));
