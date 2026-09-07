@@ -1,3 +1,13 @@
+# Manabu v0.11.9 beta
+
+## v0.11.9 navigation update
+- Progress now lives inside **Me → Progress** instead of occupying a bottom-navigation slot.
+- Bottom navigation is simplified to **Learn · Friends · Me**.
+- Existing XP, streaks, quiz mastery and other locally stored progress are unchanged.
+
+
+**Tutor pronunciation audio:** Tutor answers now include a **🔊 Hear Japanese** control. Local dictionary/course lookups use the app's hidden Japanese-script speech targets for more reliable Japanese text-to-speech. Live AI tutor lookups now request a hidden Japanese speech form while keeping the learner-facing answer romaji-first. The Tutor intro explains that learners can type a word naturally and tap the audio control to hear it.
+
 # Manabu v0.11.7 beta
 
 **Major curriculum expansion:** Manabu now has hundreds of feed lessons and vocabulary cards across six learning levels: Beginner, Conversational Beginner, Intermediate, Upper Intermediate, Advanced, and Manabu Master.
