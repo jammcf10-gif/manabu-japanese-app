@@ -41,6 +41,9 @@
     .brand-mark{width:27px;height:27px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#ff9b61 46%,var(--accent-2));display:grid;place-items:center;box-shadow:0 8px 22px rgba(255,79,134,.35);font-size:14px}
     .stats{display:flex;gap:8px}
     .stat{display:flex;align-items:center;gap:5px;background:rgba(12,12,18,.62);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(12px);padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}
+    .header-search-btn{display:flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,.12);background:rgba(12,12,18,.72);color:#fff;backdrop-filter:blur(12px);padding:6px 9px;border-radius:999px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap}
+    .header-search-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+    .header-search-btn.active{background:#fff;color:#111;border-color:#fff}
     .tabs{margin-top:12px;display:flex;justify-content:flex-start;gap:4px;pointer-events:auto;overflow-x:auto;scrollbar-width:none;padding:0 12px 2px;overscroll-behavior-x:contain}
     .tabs::-webkit-scrollbar{display:none}
     .tab{border:0;color:#d7d7e4;background:transparent;padding:8px 10px;font-size:12px;font-weight:800;opacity:.68;cursor:pointer;border-radius:999px;white-space:nowrap;flex:0 0 auto}
@@ -292,6 +295,7 @@
       <div class="header-row">
         <div class="brand"><span class="brand-mark">M</span>manabu</div>
         <div class="stats">
+          <button class="header-search-btn" id="headerSearchBtn" type="button" aria-label="Search Japanese"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span>Search</span></button>
           <div class="stat" title="Current streak">🔥 <span id="streakCount">3</span></div>
           <div class="stat" title="Spendable XP">⚡ <span id="xpCount">120</span></div>
         </div>
@@ -304,7 +308,6 @@
         <button class="tab" data-filter="upper">Upper</button>
         <button class="tab" data-filter="advanced">Advanced</button>
         <button class="tab" data-filter="master">Master</button>
-        <button class="tab" data-filter="search">Search</button>
       </div>
     </header>
 
@@ -2556,6 +2559,7 @@ function renderSituationDetail(id){
 function showSearch(){
   persistFeedPosition();
   closeSheet(); hideAppPages(); feed.style.display='none'; activeSituationId=null;
+  document.getElementById('headerSearchBtn')?.classList.add('active');
   document.getElementById('searchPage').classList.add('active');
   document.getElementById('mainHeader').classList.remove('me-mode');
   document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page==='home'));
@@ -2705,6 +2709,7 @@ function hideAppPages(){
 function showProfile(){
   persistFeedPosition();
   closeSheet();hideAppPages();feed.style.display='none';
+  document.getElementById('headerSearchBtn')?.classList.remove('active');
   document.getElementById('mePage').classList.add('active');
   document.getElementById('mainHeader').classList.add('me-mode');
   renderMePage();
@@ -2712,6 +2717,7 @@ function showProfile(){
 function showFriends(){
   persistFeedPosition();
   closeSheet();hideAppPages();feed.style.display='none';
+  document.getElementById('headerSearchBtn')?.classList.remove('active');
   activeFriendId=null;
   document.getElementById('friendsPage').classList.add('active');
   document.getElementById('mainHeader').classList.add('me-mode');
@@ -2719,9 +2725,15 @@ function showFriends(){
 }
 function showLearn(){
   closeSheet();hideAppPages();
+  document.getElementById('headerSearchBtn')?.classList.remove('active');
   feed.style.display='block';
   document.getElementById('mainHeader').classList.remove('me-mode');
 }
+
+document.getElementById('headerSearchBtn')?.addEventListener('click',()=>{
+  showSearch();
+  setTimeout(()=>document.getElementById('situationSearch')?.focus(),50);
+});
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
  persistFeedPosition();
@@ -2755,7 +2767,7 @@ document.querySelectorAll('.goal').forEach(g=>{
 const tutorialSteps=[
   {icon:'↑',title:'Swipe to learn',copy:'Learn works like a short-form feed. Swipe up for the next spoken Japanese lesson. Everything is shown in romaji first, so you can focus on speaking before reading Japanese script.',tip:'Tap individual words in a lesson to reveal their English meaning.'},
   {icon:'🎙️',title:'Listen, speak, then quiz',copy:'Use Listen to hear natural Japanese, then Speak to try it yourself. Finish the quick quiz to test the meaning and earn XP the first time you pass.',tip:'Speaking and quiz XP can only be earned once per lesson, so progress cannot be farmed.'},
-  {icon:'⌕',title:'Search exactly what you need',copy:'Open Search from the Learn tabs for situations like café, pool or theme park, or topics like colours, food and clothing. You can also scan Japanese or English text with the camera.',tip:'Open a Search pack and use “Practise this pack” to test yourself.'},
+  {icon:'⌕',title:'Search exactly what you need',copy:'Tap Search in the top bar from anywhere for situations like café, pool or theme park, or topics like colours, food and clothing. You can also scan Japanese or English text with the camera.',tip:'Open a Search pack and use “Practise this pack” to test yourself.'},
   {icon:'🧠',title:'Manabu brings words back',copy:'After you have seen enough new material, Memory Checks bring older vocabulary back unexpectedly. Correct recall moves a word from Encountered to Learned.',tip:'That delayed recall is what makes your Learned total meaningful.'},
   {icon:'☻',title:'Friends + Manabu Tutor',copy:'Friends lets you practise English and romaji Japanese in chat. Manabu Tutor is pinned there too, and Roleplay Coach lets you react in real situations and improve your own sentence.',tip:'Try asking: “How do I say hungry?” or “Teach me 5 food words.”'},
   {icon:'⚡',title:'Track progress and unlock rewards',copy:'Me brings your progress into one place: streak, XP, daily mission, time in the app, encountered vs learned words, achievements and level. Use earned XP to unlock profile avatars without lowering your level. There are no real-money purchases.',tip:'Your level uses lifetime XP; the reward shop only uses your separate earned-XP balance.'}

@@ -1,4 +1,11 @@
-# Manabu v0.11.9 beta
+# Manabu v0.11.10 beta
+
+## v0.11.10 Search access update
+- Search is now a permanent **Search** button in the top header, so it is always one tap away and never hidden off-screen in the level scroller.
+- The old Search item was removed from the scrolling level tabs.
+- Opening Search from the header focuses the search box immediately.
+- Bottom navigation stays clean as **Learn · Friends · Me**.
+
 
 ## v0.11.9 navigation update
 - Progress now lives inside **Me → Progress** instead of occupying a bottom-navigation slot.
