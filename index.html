@@ -61,12 +61,19 @@
     .lesson-ui{position:absolute;z-index:5;left:0;right:0;bottom:0;padding:0 72px calc(88px + env(safe-area-inset-bottom)) 18px}
     .context{font-size:12px;color:#ddddef;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:7px}
     .context-dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 12px var(--good)}
-    .jp-line{font-size:30px;line-height:1.22;font-weight:950;letter-spacing:.012em;word-spacing:.1em;margin:0 0 5px}
+    .jp-line{font-size:30px;line-height:1.22;font-weight:950;letter-spacing:.012em;word-spacing:.1em;margin:0 0 5px;max-width:100%;overflow-wrap:anywhere;word-break:normal}
+    .jp-line.jp-medium{font-size:26px;line-height:1.18}
+    .jp-line.jp-long{font-size:23px;line-height:1.14;word-spacing:.05em}
+    .jp-line.jp-xlong{font-size:20px;line-height:1.10;letter-spacing:.005em;word-spacing:.03em}
     .romaji{font-size:14px;color:#d6d6e2;margin-bottom:8px;font-weight:700}
     .translation{font-size:16px;line-height:1.45;color:#fff;font-weight:700;margin-bottom:14px;min-height:24px;transition:.2s}
     .translation.hidden{filter:blur(9px);user-select:none;opacity:.55}
     .tokens{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+    .tokens.tokens-compact{gap:6px;margin-bottom:10px}
+    .tokens.tokens-tight{gap:5px;margin-bottom:8px}
     .token{border:1px solid rgba(255,255,255,.14);background:rgba(10,10,16,.42);color:white;border-radius:999px;padding:7px 9px;font-size:12px;font-weight:800;cursor:pointer;backdrop-filter:blur(10px)}
+    .tokens.tokens-compact .token{padding:6px 8px;font-size:11px}
+    .tokens.tokens-tight .token{padding:5px 7px;font-size:10px}
     .token[data-open="true"]{background:#fff;color:#111;border-color:#fff}
     .explain{font-size:12px;color:#c6c6d7;line-height:1.45;max-width:330px}
     .actions{position:absolute;right:12px;bottom:calc(93px + env(safe-area-inset-bottom));z-index:7;display:flex;flex-direction:column;gap:15px;align-items:center}
@@ -227,7 +234,7 @@
     .review-source{margin-top:9px;font-size:13px;color:rgba(255,255,255,.52)}
     .review-done-pill{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:8px 11px;border-radius:999px;background:rgba(50,205,125,.14);border:1px solid rgba(80,235,150,.3);font-size:12px;font-weight:900;color:#c9f8dc}
     @media (max-width:560px){.float-jp{letter-spacing:.03em;word-spacing:.34em}}
-    @media (max-height:740px){.actions{gap:10px}.action-btn{width:44px;height:44px}.lesson-ui{padding-right:67px}.jp-line{font-size:27px}}
+    @media (max-height:740px){.actions{gap:10px}.action-btn{width:44px;height:44px}.lesson-ui{padding-right:67px}.jp-line{font-size:27px}.jp-line.jp-medium{font-size:24px}.jp-line.jp-long{font-size:21px}.jp-line.jp-xlong{font-size:18px}.float-jp.float-long{font-size:clamp(28px,8vw,42px)}}
 
     .search-library-head{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:19px 0 10px}.search-library-title{font-size:17px;font-weight:950;letter-spacing:-.03em}.search-library-sub{font-size:9px;color:#8f8fa1;text-align:right;line-height:1.35}
     .topic-card .situation-icon{background:linear-gradient(135deg,rgba(255,79,134,.18),rgba(124,92,255,.18))}.topic-pill{display:inline-flex;width:max-content;margin-top:7px;padding:4px 6px;border-radius:999px;background:rgba(255,79,134,.11);color:#ffc3d5;font-size:8px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
@@ -263,10 +270,13 @@
     .float-jp.float-long{font-size:clamp(38px,10.5vw,60px);white-space:normal;overflow-wrap:anywhere;word-break:normal}
     .lesson-ui{padding-right:72px}
     .lesson-ui .jp-line{max-width:100%;overflow-wrap:break-word;word-break:normal;text-wrap:balance}
-    .lesson.phrase-long .jp-line{font-size:25px;line-height:1.18}
-    .lesson.phrase-xl .jp-line{font-size:22px;line-height:1.16}
-    .lesson.phrase-xxl .jp-line{font-size:20px;line-height:1.15}
+    .lesson.phrase-long .jp-line{font-size:24px;line-height:1.16;letter-spacing:.005em;word-spacing:.04em}
+    .lesson.phrase-xl .jp-line{font-size:20px;line-height:1.14;letter-spacing:0;word-spacing:.03em}
+    .lesson.phrase-xxl .jp-line{font-size:18px;line-height:1.12;letter-spacing:0;word-spacing:.02em}
     .lesson.phrase-long .tokens{gap:6px;margin-bottom:10px}
+    .lesson.phrase-long .float-jp,.lesson.phrase-xl .float-jp,.lesson.phrase-xxl .float-jp{display:none}
+    .lesson.phrase-xl .tokens,.lesson.phrase-xxl .tokens{gap:5px;margin-bottom:8px}
+    .lesson.phrase-xl .token,.lesson.phrase-xxl .token{padding:6px 8px;font-size:11px}
     .lesson.phrase-xl .float-jp,.lesson.phrase-xxl .float-jp{top:31%;font-size:clamp(28px,8vw,42px);max-width:calc(100% - 48px);opacity:.72}
     .actions{gap:13px}
     .lesson-more-list{display:grid;gap:9px;margin:12px 0}
@@ -1554,13 +1564,17 @@ function renderFeed(filter='all',options={}){
   feed.innerHTML=items.map(item=>{
     if(item.type==='review') return reviewCardHtml(item);
     const l=item.lesson, i=lessonIndex++;
-    const floatClass=String(l.float||'').replace(/\s/g,'').length>10?' float-long':'';
-    const phraseLength=String(l.phrase||'').trim().length;
-    const phraseClass=phraseLength>100?' phrase-xxl':phraseLength>78?' phrase-xl':phraseLength>54?' phrase-long':'';
+    const floatText=String(l.float||'').trim();
+    const floatClass=floatText.replace(/\s/g,'').length>10?' float-long':'';
+    const phraseText=String(l.phrase||'').trim();
+    const phraseLength=phraseText.length;
+    const phraseWords=phraseText?phraseText.split(/\s+/).length:0;
+    const phraseClass=(phraseLength>100||phraseWords>14)?' phrase-xxl':(phraseLength>78||phraseWords>11)?' phrase-xl':(phraseLength>54||phraseWords>8)?' phrase-long':'';
+    const showFloat=!!floatText && !phraseClass && floatText.split(/\s+/).length<=2 && floatText.length<=14;
     return `<article class="lesson${phraseClass}" data-id="${l.id}">
       <div class="scene"><div class="scene-art">${sceneSvg(l.scene)}</div></div>
       <div class="badge">${l.tag}</div>
-      <div class="float-jp${floatClass}">${l.float}</div>
+      ${showFloat?`<div class="float-jp${floatClass}">${l.float}</div>`:''}
       ${i===0?'<div class="swipe-hint">SWIPE<br/>↑</div>':''}
       <div class="lesson-ui">
         <div class="context"><span class="context-dot"></span> Listen · speak · remember</div>
