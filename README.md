@@ -107,3 +107,18 @@ The XP shop uses earned learning XP only. There are no real-money payments, paid
 - Fixed the old substring bug that could answer `nani` for `who` because the question itself contained `what`.
 - Tutor now indexes the full lesson + Search vocabulary library, not just the old small hard-coded list.
 - Unknown words/phrases automatically fall through to the configured Live AI server instead of saying they are not in the prototype vocabulary.
+
+
+## v0.11.11 Search + long-lesson layout fix
+- Fixed the always-visible header Search button on touch devices. The header previously disabled pointer events, so the new Search control could appear but not receive taps.
+- Added responsive phrase sizing for long Intermediate, Upper Intermediate, Advanced and Master sentences.
+- Long lesson phrases now wrap and shrink in controlled steps instead of colliding with word chips or neighbouring lesson content.
+- On extra-long lessons, the decorative centre phrase is moved upward, reduced and softened so the full lesson sentence stays readable.
+- Updated the PWA cache so installed phones receive this fix.
+
+
+## v0.11.12 verification + mobile collision fix
+- Verified Search button wiring and live search rendering in a browser DOM test.
+- Long decorative centre phrases are hidden on phone-sized screens when they would otherwise wrap into the primary lesson content.
+- Advanced and Master lesson text remains visible, responsive and contained inside its own card.
+- Updated the in-app beta version label and service-worker cache revision.
